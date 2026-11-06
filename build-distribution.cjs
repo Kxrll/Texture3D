@@ -1,0 +1,12 @@
+const fs=require('node:fs'),path=require('node:path');
+const target=path.join(__dirname,'distribution','photoshop');
+fs.mkdirSync(target,{recursive:true});
+const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'manifest.json'),'utf8'));
+manifest.id='fr.texture3d.studio';
+manifest.name='Texture3D Studio';
+manifest.author={name:'Texture3D'};
+manifest.icons=[{width:48,height:48,path:'icon.png',scale:[1],theme:['all'],species:['pluginList']}];
+fs.writeFileSync(path.join(target,'manifest.json'),JSON.stringify(manifest,null,2));
+for(const file of ['main.js','index.html','companion-config.json'])fs.copyFileSync(path.join(__dirname,file),path.join(target,file));
+fs.copyFileSync(path.join(__dirname,'assets','plugin.png'),path.join(target,'icon.png'));
+console.log('Plugin Photoshop prêt à empaqueter : '+target);

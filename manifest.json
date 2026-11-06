@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 5,
+  "id": "fr.texture3d.preview",
+  "name": "Texture 3D — Aperçu",
+  "version": "0.6.0",
+  "main": "index.html",
+  "host": {"app": "PS", "minVersion": "26.0.0", "data": {"apiVersion": 2, "loadEvent": "startup"}},
+  "requiredPermissions": {
+    "network": {"domains": "all"}
+  },
+  "entrypoints": [{
+    "type": "command", "id": "texture3d", "label": {"default": "Ouvrir Texture 3D"}
+  }]
+}
