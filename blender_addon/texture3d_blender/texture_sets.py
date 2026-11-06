@@ -74,7 +74,7 @@ def prepare(context, folder, resolution, guide):
 
             material.use_nodes=True
 
-            material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=source['color']
+            materials.shader_for(material).inputs['Base Color'].default_value=source['color']
 
             guides=bytearray(size*size*4)
 
