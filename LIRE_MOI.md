@@ -1,3 +1,15 @@
+# Version 0.7.0 : UV d’origine et textures par matériau
+
+Les nouveaux projets conservent les coordonnées UV de Blender exactement, sans atlas commun, compactage ou nouvelle carte UV Texture3D. Chaque matériau utilisé possède un PSD et une texture à pleine résolution. Les objets partageant un matériau partagent son image ; les UV superposés dans ce matériau partagent donc la peinture.
+
+Dans le viewer, choisis **Matériau à peindre** pour activer son document Photoshop. Le modèle complet reste visible. Ctrl + S actualise la texture du matériau associé ; **Envoyer dans Blender** applique uniquement cette texture aux emplacements correspondants avec leurs UV d’origine. Les autres canaux des matériaux restent conservés.
+
+Crée un **Nouveau projet** pour utiliser ce mode. Les anciens projets restent dans leur fonctionnement atlas : leur peinture et leurs cartes Texture3D ne sont ni supprimées ni converties automatiquement. Conserve tous les PSD du nouveau projet ensemble ; Reprendre la peinture les rouvre.
+
+Tests : test-texture-sets.py vérifie les UV et emplacements inchangés après des retours répétés, deux matériaux séparés et un matériau partagé entre deux objets. test-native-integration.py vérifie le vrai transfert Photoshop 4096 px/16 bits. test-material-selector.cjs vérifie le changement de document Photoshop depuis le viewer ; il nécessite un projet de test à deux matériaux ouvert. Les tests d’atlas historiques vérifient la compatibilité avec les anciens projets.
+
+Les sections suivantes décrivent l’historique des versions ; cette section remplace leurs indications sur la création systématique d’un atlas.
+
 # Texture 3D — prototype Photoshop
 
 ## Version 0.6.0 — connexion, matériaux et texture native

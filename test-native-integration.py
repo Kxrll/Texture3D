@@ -38,6 +38,11 @@ for attempt in range(100):
     if settings['document'] in info['document'] and info['online'] and info['blenderOnline']:break
     time.sleep(0.2)
 else:raise RuntimeError('Real project connection failed: '+str(info))
+for _ in range(100):
+    state=request('/state')
+    if len(state.get('textures',{}))==2 and state['texture'].get('setID')=='set_0':break
+    addon.multi.receive();time.sleep(.2)
+time.sleep(1)
 result=subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(root/'test-native-ps.ps1'),'-PSDPath',str(project/settings['document'])],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
 if result.returncode:raise RuntimeError(result.stderr.decode(errors='replace'))
 initial=request('/revision')
@@ -52,7 +57,7 @@ snapshot=request('/state?after=-1')
 assert snapshot['texture']['width']==4096 and snapshot['texture']['bitDepth']==16
 outcome={}
 def send():
-    try:outcome['result']=request('/return-blender',{'projectID':str(project),'textureVersion':snapshot['textureVersion']})
+    try:outcome['result']=request('/return-blender',{'projectID':str(project),'textureVersion':snapshot['textureVersion'],'setID':snapshot['texture'].get('setID')})
     except Exception as error:outcome['error']=str(error)
 threading.Thread(target=send,daemon=True).start()
 for attempt in range(200):

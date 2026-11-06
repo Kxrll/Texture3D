@@ -61,3 +61,7 @@ Les exécutables et archives se téléchargent dans les releases, pas dans le co
 ### Synchroniser le travail
 
 Avant de travailler sur un autre poste, récupérer les derniers changements avec `git pull --ff-only` depuis un dossier sans modifications en attente. Après les modifications, vérifier `git diff`, lancer les contrôles adaptés, puis faire un commit et `git push`. Les consignes pour maintenir ce dépôt à jour sont aussi dans `AGENTS.md`.
+
+## Version 0.7 : conserver les UV
+
+Les nouveaux projets utilisent un PSD par matériau avec les UV d’origine, sans les réduire ni ajouter de carte UV. Le viewer affiche tout le modèle et permet de choisir le matériau à peindre. Le retour Blender concerne le matériau choisi. Les anciens projets en atlas restent compatibles ; créer un nouveau projet pour adopter le nouveau mode. Les limites de textures procédurales/UDIM restent inchangées.

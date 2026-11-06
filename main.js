@@ -79,7 +79,7 @@ async function update(){
       }
     },{commandName:'Actualiser l’aperçu 3D',timeOut:3000});
     capturingPNG=false;
-    await send({type:'texture',seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}});
+    await send({type:'texture',documentName:doc.title,seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}});
   }catch(error){setStatus('Erreur : '+error.message);console.error(error);}
   finally{capturingPNG=false;if(tempFile)try{await tempFile.delete();}catch(_){}wasSaved=doc.saved;busy=false;if(pending){pending=false;queueUpdate();}}
 }
@@ -144,7 +144,7 @@ async function processCommands(){
     while(queuedCommands.length&&!stopped){
       const command=queuedCommands.shift();
       try{
-        if(command.type==='link')link(command.documentName);
+        if(command.type==='link'){await core.executeAsModal(async()=>{const doc=Array.from(app.documents).find(d=>d.title===command.documentName);if(doc)app.activeDocument=doc;},{commandName:'Choisir le matériau'});link(command.documentName);}
         if(command.type==='refresh')await update();
         if(command.type==='auto')autoEnabled=!!command.enabled;
         if(command.type==='importModel')await send({type:'model',bytes:command.bytes,name:command.name});

@@ -1,6 +1,6 @@
 bl_info = {
     'name': 'Texture3D — Peindre dans Photoshop', 'author': 'Texture3D',
-    'version': (0, 6, 0), 'blender': (4, 2, 0),
+    'version': (0, 7, 0), 'blender': (4, 2, 0),
     'location': 'Vue 3D > Barre latérale (N) > Texture3D', 'category': 'Paint',
 }
 
@@ -178,7 +178,7 @@ def launch_project(folder, project, settings):
                 time.sleep(0.25)
         model = list((project / settings.get('model', 'Modele.glb')).read_bytes())
         document_name = Path(settings.get('document_path') or settings['document']).name
-        response = request('/start-project', {'bytes': model, 'name': settings['name'] + '.glb', 'documentName': document_name, 'blenderSession': multi.session, 'projectID': str(project)})
+        response = request('/start-project', {'bytes': model, 'name': settings['name'] + '.glb', 'documentName': document_name, 'blenderSession': multi.session, 'projectID': str(project), 'textureSets': settings.get('texture_sets', [])})
         if not response['online']:
             _events.put('Connexion automatique à Photoshop…')
             for attempt in range(60):

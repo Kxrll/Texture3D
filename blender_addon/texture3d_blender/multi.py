@@ -102,7 +102,7 @@ def _legacy_prepare(context, folder, resolution, single, guide):
         context.view_layer.objects.active = active
 
 
-def prepare(context, folder, resolution, single, guide):
+def prepare_atlas(context, folder, resolution, single, guide):
     selected = list(context.selected_objects)
     objects = [obj for obj in selected if obj.type == 'MESH']
     if not objects or context.mode != 'OBJECT':
@@ -179,6 +179,9 @@ def prepare(context, folder, resolution, single, guide):
 
 def apply(job):
     from . import projects
+    if projects.read_settings(projects.project_path(bpy.context)).get('schema') == 3:
+        from . import texture_sets
+        return texture_sets.apply(bpy.context, job)
     targets = projects.validate_return(bpy.context, job['projectID'])
     bindings[job['projectID']] = targets
     for obj, uv, *_ in targets:
@@ -311,3 +314,10 @@ def stop():
     halt.set()
     if bpy.app.timers.is_registered(receive):
         bpy.app.timers.unregister(receive)
+
+
+def prepare(context, folder, resolution, single, guide):
+    from . import texture_sets
+    project, settings, targets = texture_sets.prepare(context, folder, resolution, guide)
+    bindings[str(project)] = targets
+    return project, settings

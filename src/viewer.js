@@ -38,6 +38,7 @@ try {
   },{capture:true,passive:false});
   const loader=new GLTFLoader();
   let model=null,texture=null,latestSeq=0,modelSeq=0;
+  const setTextures=new Map(),setSequences=new Map();
   let wireframeEnabled=false;
   function updateWireframe(){
     if(!model)return;
@@ -79,7 +80,7 @@ try {
     camera.near=radius/100;camera.far=radius*100;camera.updateProjectionMatrix();
     controls.minDistance=radius*0.15;controls.maxDistance=radius*30;controls.update();
   }
-  function disposeModel(root){root.traverse(o=>{if(o.userData.texture3dWireframe){o.geometry.dispose();o.material.dispose();}else if(o.isMesh){o.geometry.dispose();for(const m of [].concat(o.material)){for(const value of Object.values(m)){if(value && value.isTexture && value!==texture)value.dispose();}m.dispose();}}});}
+  function disposeModel(root){root.traverse(o=>{if(o.userData.texture3dWireframe){o.geometry.dispose();o.material.dispose();}else if(o.isMesh){o.geometry.dispose();for(const m of [].concat(o.material)){for(const value of Object.values(m)){if(value && value.isTexture && value!==texture&&!Array.from(setTextures.values()).includes(value))value.dispose();}m.dispose();}}});}
   function loadModel(buffer){
     const request=++modelSeq;
     loader.parse(buffer,'',gltf=>{
@@ -91,11 +92,18 @@ try {
       if(!meshes){fail(new Error('Aucun maillage dans ce GLB.'));return;}
       if(model){scene.remove(model);disposeModel(model);}
       model=candidate;
-      model.traverse(o=>{if(o.isMesh){for(const old of [].concat(o.material))old.dispose();o.material=new THREE.MeshBasicMaterial({map:texture,color:texture?0xffffff:0xc9cbd0,side:THREE.DoubleSide});}});
+      model.traverse(o=>{if(o.isMesh){const old=[].concat(o.material)[0];o.userData.textureSet=old.userData.texture3d_set||(old.name.startsWith('Texture3D_set_')?old.name.slice('Texture3D_'.length):null);const map=o.userData.textureSet?setTextures.get(o.userData.textureSet):texture;const color=old.color?.clone()||new THREE.Color(0xc9cbd0);for(const m of [].concat(o.material))m.dispose();o.material=new THREE.MeshBasicMaterial({map:map||null,color:map?0xffffff:color,side:THREE.DoubleSide});}});
       updateWireframe();scene.add(model);frame();document.getElementById('error').textContent='';tell({type:'ready'});
     },fail);
   }
   async function applyTexture(m){
+    if(m.setID){
+      const key=m.setID;setSequences.set(key,m);const img=new Image();img.src=m.url;await img.decode();if(setSequences.get(key)!==m)return;
+      let map=setTextures.get(key);if(map&&map.userData.source===m.url)return;
+      const canvas=document.createElement('canvas');const scale=Math.min(1,renderer.capabilities.maxTextureSize/Math.max(m.width,m.height));canvas.width=Math.round(m.width*scale);canvas.height=Math.round(m.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=THREE.SRGBColorSpace;next.userData.source=m.url;setTextures.set(key,next);texture=next;
+      if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===key){o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}});if(map)map.dispose();return;
+    }
     latestSeq=m.seq;
     const img=new Image();img.src=m.url;
     await img.decode();
@@ -184,7 +192,7 @@ try {
   });
   document.addEventListener('fullscreenchange',()=>{document.getElementById('fullscreen').textContent=document.fullscreenElement?'Quitter le plein écran':'Plein écran';resize();});
   if(externalToken && !window.uxpHost){
-    let revision=-1,lastModelVersion=-1,lastTextureVersion=-1,serverInstance=null;
+    let revision=-1,lastModelVersion=-1,lastTextureVersion=-1,serverInstance=null,activeProject=null;
     const connection=document.getElementById('connection');
     let lastTextureUpdate=0,viewerConnected=true;
     function updateAge(){
@@ -215,13 +223,15 @@ try {
         await applyTexture({...snapshot.texture,seq:snapshot.textureVersion});
         if(!model||!texture)throw Error('Charge un modèle et une texture avant l’envoi.');
         message.textContent='Envoi du PNG original dans Blender…';
-        const result=await fetch('/return-blender',{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify({projectID:snapshot.projectID,textureVersion:snapshot.textureVersion})});
+        const result=await fetch('/return-blender',{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify({projectID:snapshot.projectID,textureVersion:snapshot.textureVersion,setID:snapshot.texture?.setID})});
         const data=await result.json();if(!result.ok)throw Error(data.error||'Échec de l’export.');
         message.textContent=data.count+' objet(s) mis à jour dans la scène Blender ouverte.';
       }catch(e){message.textContent=e.message;}
       finally{exporting=false;button.disabled=false;}
     });
     let commandBusy=false;
+    const materialSelect=document.getElementById('texture-set');
+    materialSelect.addEventListener('change',()=>command({type:'link',documentName:materialSelect.value}));
     const commandButtons=['associate','refresh-external','auto-external'].map(id=>document.getElementById(id));
     async function command(message){
       if(commandBusy)return;
@@ -247,17 +257,21 @@ try {
         document.getElementById('host-state').classList.toggle('online',info.online);
         commandButtons.forEach(button=>button.disabled=!info.online);
         document.getElementById('document-name').textContent=info.document;
+        const sets=info.textureSets||[];document.getElementById('texture-set-row').hidden=!sets.length;
+        const signature=JSON.stringify(sets.map(s=>[s.document,s.name]));if(materialSelect.dataset.signature!==signature){materialSelect.replaceChildren(...sets.map(s=>{const option=document.createElement('option');option.value=s.document;option.textContent=s.name;return option;}));materialSelect.dataset.signature=signature;}materialSelect.value=info.activeDocument||'';materialSelect.disabled=!info.online;document.getElementById('associate').hidden=!!sets.length;document.querySelector('#associate + .caption').textContent=sets.length?'Choisis un matériau pour ouvrir son document dans Photoshop.':'Pour changer de texture, associe le document ouvert dans Photoshop.';document.querySelector('.export-section .caption').textContent=sets.length?'Applique la texture du matériau sélectionné dans Blender.':'Applique la texture aux objets de la scène Blender ouverte.';
         document.getElementById('auto-external').checked=info.auto;
         document.getElementById('bridge-status').textContent=info.online?((/^(À jour|Texture à jour)/.test(info.status)?'Synchronisation active · Ctrl + S':info.status)+(info.blenderOnline?'':' · Blender déconnecté : ouvre la scène et reprends la peinture.')):'Photoshop déconnecté. Rouvre Photoshop ou utilise Reprendre la peinture dans Blender.';
         const response=await fetch('/state?after='+revision,{headers:{'X-Texture3D-Key':externalToken},cache:'no-store'});
         if(response.status===200){
           const state=await response.json();
+          if(activeProject!==state.projectID){activeProject=state.projectID;setSequences.clear();for(const map of setTextures.values())map.dispose();setTextures.clear();}
           if(state.modelVersion!==lastModelVersion){
             document.getElementById('model-name').textContent=state.model?.name||'Cube.glb';
             loadModel(state.model?new Uint8Array(state.model.bytes).buffer:Uint8Array.from(atob(cubeData),c=>c.charCodeAt(0)).buffer);
             lastModelVersion=state.modelVersion;
           }
           if(state.texture && state.textureVersion!==lastTextureVersion){await applyTexture({...state.texture,seq:state.textureVersion});lastTextureVersion=state.textureVersion;lastTextureUpdate=state.texture.updatedAt||Date.now();}
+          for(const entry of Object.values(state.textures||{}))await applyTexture(entry);
           revision=state.revision;
           viewerConnected=true;if(lastTextureUpdate)updateAge();else connection.textContent='En attente de la texture Photoshop…';
         }else if(response.status!==204)throw Error('Connexion refusée');

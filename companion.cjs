@@ -63,7 +63,7 @@ const server=http.createServer(async(req,res)=>{
       }
       for(const ack of body.ack||[]){const job=returns.get(ack.id);if(job&&job.session===body.session){job.finish(ack);returns.delete(ack.id);}}
       res.setHeader('Content-Type','application/json');
-      res.end(JSON.stringify({jobs:[...returns.values()].filter(j=>j.session===body.session).map(({id,glb,image,projectID})=>({id,glb,image,projectID}))}));return;
+      res.end(JSON.stringify({jobs:[...returns.values()].filter(j=>j.session===body.session).map(({id,glb,image,projectID,setID})=>({id,glb,image,projectID,setID}))}));return;
     }
     if(req.method==='POST' && url.pathname==='/start-project'){
       const project=await readJSON(req);
@@ -73,12 +73,13 @@ const server=http.createServer(async(req,res)=>{
       const nextModel={type:'model',bytes:project.bytes,name:String(project.name||'Modele.glb')};
       model=nextModel;modelVersion=++revision;texture=null;textureVersion=++revision;
       targetBlender=typeof project.blenderSession==='string'&&typeof project.projectID==='string'?{session:project.blenderSession,projectID:project.projectID}:null;
-      currentProject={projectID:targetBlender?.projectID||null,documentName:project.documentName};persist();
+      currentProject={projectID:targetBlender?.projectID||null,documentName:project.documentName,textureSets:project.textureSets||[],textures:{}};persist();
       // Replace an earlier pending project and keep this launch pending when Photoshop's panel is closed.
       commands=commands.filter(c=>!['importModel','link','refresh','auto'].includes(c.type));
       commands.push({...nextModel,type:'importModel',id:++commandID},
         {type:'link',documentName:project.documentName,id:++commandID},
         {type:'auto',enabled:true,id:++commandID},{type:'refresh',id:++commandID});
+      if(currentProject.textureSets.length){commands=[];for(const set of [...currentProject.textureSets,currentProject.textureSets[0]])commands.push({type:'link',documentName:set.document,id:++commandID},{type:'refresh',id:++commandID});}
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({online:Date.now()-bridgeSeen<4000}));return;
     }
     if(req.method==='POST' && url.pathname==='/return-blender'){
@@ -89,11 +90,12 @@ const server=http.createServer(async(req,res)=>{
       if(body.textureVersion>textureVersion)throw Error('La nouvelle texture n’est pas encore disponible. Réessaie.');
       if([...returns.values()].some(j=>j.projectID===targetBlender.projectID))throw Error('Un transfert vers Blender est déjà en cours.');
       const sourceTexture=texture,destination={...targetBlender};
+      if(currentProject?.textureSets?.length && (!sourceTexture.setID || body.setID!==sourceTexture.setID || sourceTexture.documentName!==currentProject.documentName))throw Error('Le matériau a changé. Attends la mise à jour puis réessaie.');
       const folder=path.join(__dirname,'cache-textures');fs.mkdirSync(folder,{recursive:true});
-      const file=path.join(folder,require('node:crypto').createHash('sha256').update(targetBlender.projectID).digest('hex').slice(0,24)+'.png');
+      const file=path.join(folder,require('node:crypto').createHash('sha256').update(targetBlender.projectID+':'+(sourceTexture.setID||'')).digest('hex').slice(0,24)+'.png');
       const bytes=Buffer.from(sourceTexture.url.slice(sourceTexture.url.indexOf(',')+1),'base64');
       fs.writeFileSync(file+'.tmp',bytes);fs.renameSync(file+'.tmp',file);
-      const result=await waitForReturn(destination,{image:file});
+      const result=await waitForReturn(destination,{image:file,setID:sourceTexture.setID});
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({count:result.count,updatedExisting:true,width:sourceTexture.width,height:sourceTexture.height,bitDepth:sourceTexture.bitDepth}));return;
     }
     if(req.method==='POST' && url.pathname==='/export-blender'){
@@ -115,7 +117,7 @@ const server=http.createServer(async(req,res)=>{
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({name,glb,count:result.count,updatedExisting:true}));return;
     }
     if(req.method==='GET' && url.pathname==='/info'){
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...info,instanceID,blenderOnline:blenderOnline(),online:Date.now()-bridgeSeen<(info.busy?30000:4000)}));return;
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...info,textureSets:currentProject?.textureSets||[],activeDocument:currentProject?.documentName,instanceID,blenderOnline:blenderOnline(),online:Date.now()-bridgeSeen<(info.busy?30000:4000)}));return;
     }
     if(req.method==='POST' && url.pathname==='/bridge'){
       const body=await readJSON(req);bridgeSeen=Date.now();
@@ -133,6 +135,7 @@ const server=http.createServer(async(req,res)=>{
       if(!['link','refresh','auto','importModel'].includes(command.type)){res.writeHead(400);res.end();return;}
       if(commands.length>=10){res.writeHead(429);res.end();return;}
       if(command.type==='importModel' && (!Array.isArray(command.bytes)||command.bytes.length>25*1024*1024)){res.writeHead(400);res.end();return;}
+      if(command.type==='link'&&currentProject?.textureSets?.length){if(!currentProject.textureSets.some(s=>s.document===command.documentName))throw Error('Choisis un matériau du projet.');currentProject.documentName=command.documentName;persist();}
       commands.push({...command,id:++commandID});res.end('{}');return;
     }
     if(req.method==='GET' && url.pathname==='/revision'){
@@ -141,7 +144,7 @@ const server=http.createServer(async(req,res)=>{
     if(req.method==='GET' && url.pathname==='/state'){
       const after=Number(url.searchParams.get('after')??-1);
       if(after===revision){res.writeHead(204);res.end();return;}
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,modelVersion,textureVersion,model:after<modelVersion||after<0?model:undefined,texture:after<textureVersion||after<0?texture:undefined}));return;
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,modelVersion,textureVersion,textures:currentProject?.textures||{},model:after<modelVersion||after<0?model:undefined,texture:after<textureVersion||after<0?texture:undefined}));return;
     }
     if(req.method==='POST' && url.pathname==='/open'){openViewer();res.end('{}');return;}
     if(req.method==='POST' && url.pathname==='/state'){
@@ -157,6 +160,7 @@ const server=http.createServer(async(req,res)=>{
           message.width=png.readUInt32BE(16);message.height=png.readUInt32BE(20);message.bitDepth=png[24];
           if(Math.max(message.width,message.height)>8192)throw Error('Texture limitée à 8192 px.');
         }
+        if(currentProject?.textureSets?.length){const set=currentProject.textureSets.find(s=>s.document===message.documentName);if(!set)throw Error('Document hors du projet.');message.setID=set.id;currentProject.textures[set.id]=message;}
         message.updatedAt=message.updatedAt||Date.now();texture=message;textureVersion=++revision;
       }
       else{res.writeHead(400);res.end();return;}

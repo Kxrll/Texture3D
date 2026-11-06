@@ -126,6 +126,9 @@ def resume(context, return_bindings):
         raise ValueError('Passe en mode Objet pour reprendre la peinture.')
     project = project_path(context)
     settings = read_settings(project)
+    for texture_set in settings.get('texture_sets', []):
+        if not Path(texture_set.get('document_path') or str(project / texture_set['document'])).is_file():
+            raise ValueError('PSD manquant : ' + texture_set['document'] + '. Retrouve le dossier complet du projet.')
     document = Path(settings.get('document_path') or str(project / settings['document']))
     if not document.is_file():
         raise ValueError('Le PSD est introuvable. Clique sur « Retrouver le PSD », puis réessaie.')
@@ -163,6 +166,14 @@ def relocate(context, filepath, return_bindings):
     else:
         migrate(context, project, settings)
         records = stored(context)['bindings']
+    if settings.get('schema') == 3:
+        matching = next((s for s in settings['texture_sets'] if s['document'] == document.name), None)
+        if matching is None:
+            raise ValueError('Choisis un PSD du projet en conservant son nom de matériau.')
+        matching['document_path'] = str(document)
+        for item in settings['texture_sets']:
+            if (project / item['document']).is_file():
+                item['document_path'] = str(project / item['document'])
     settings['document'] = document.name
     settings['document_path'] = str(document)
     settings['source_bindings'] = records

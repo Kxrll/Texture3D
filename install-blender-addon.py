@@ -13,6 +13,7 @@ shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / '__init__.py', targe
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'multi.py', target / 'multi.py')
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'projects.py', target / 'projects.py')
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'materials.py', target / 'materials.py')
+shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'texture_sets.py', target / 'texture_sets.py')
 (target / 'tool-location.json').write_text(json.dumps({'directory': str(root)}), encoding='utf-8')
 if str(addons) not in sys.path:
     sys.path.insert(0, str(addons))

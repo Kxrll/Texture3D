@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 $target=Join-Path $env:LOCALAPPDATA 'Programs\Texture3D'
 $log=Join-Path $env:TEMP 'Texture3D-installation.log'
@@ -49,7 +49,7 @@ try {
  New-Item -Path $reg -Force | Out-Null
  New-ItemProperty -Path $reg -Name DisplayName -Value 'Texture3D Studio' -Force | Out-Null
  New-ItemProperty -Path $reg -Name DisplayIcon -Value (Join-Path $target 'assets\texture3d.ico') -Force | Out-Null
- New-ItemProperty -Path $reg -Name DisplayVersion -Value '0.6.0' -Force | Out-Null
+ New-ItemProperty -Path $reg -Name DisplayVersion -Value '0.7.0' -Force | Out-Null
  New-ItemProperty -Path $reg -Name UninstallString -Value ('powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "'+$target+'\uninstall.ps1"') -Force | Out-Null
  [System.Windows.Forms.MessageBox]::Show('Installation terminée. Ouvre Blender, sélectionne ton modèle puis utilise le panneau Texture3D (touche N).','Texture3D') | Out-Null
 } catch { [System.Windows.Forms.MessageBox]::Show(($_.Exception.Message+"`n`nJournal : "+$log),'Texture3D — installation interrompue','OK','Error') | Out-Null; exit 1 } finally { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null }

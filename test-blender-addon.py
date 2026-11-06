@@ -9,6 +9,8 @@ import tempfile
 root = Path(__file__).resolve().parent
 sys.path.insert(0, str(root / 'blender_addon'))
 import texture3d_blender as addon
+# Preserve regression coverage for projects created with the legacy atlas workflow.
+addon.multi.prepare = addon.multi.prepare_atlas
 addon.register()
 obj = bpy.context.active_object
 with tempfile.TemporaryDirectory(prefix='texture3d-test-') as temp:

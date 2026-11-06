@@ -6,6 +6,8 @@ import shutil
 import sys
 sys.path.insert(0, str(Path(__file__).parent / 'blender_addon'))
 import texture3d_blender as addon
+# Preserve regression coverage for projects created with the legacy atlas workflow.
+addon.multi.prepare = addon.multi.prepare_atlas
 stage, directory = sys.argv[sys.argv.index('--') + 1:]
 base = Path(directory).resolve()
 addon.register()
