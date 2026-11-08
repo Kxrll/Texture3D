@@ -4,9 +4,9 @@
 
 **Blender pour le modèle. Photoshop pour la peinture.**
 
-Un outil que j’ai créé pour peindre mes textures dans Photoshop et voir le résultat sur mon modèle 3D, dans une fenêtre à côté.
+Un outil que j’ai créé pour peindre des textures dans Photoshop et voir le résultat sur modèle 3D, dans une fenêtre à côté.
 
-[Télécharger](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) · [Développement](docs/DEVELOPPEMENT.md)
+[Télécharger](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) 
 
 ![Le viewer Texture3D](docs/viewer.png)
 
