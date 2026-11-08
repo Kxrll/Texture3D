@@ -4,7 +4,7 @@
 
 **Blender pour le modèle. Photoshop pour la peinture.**
 
-Un outil que j’ai créé pour peindre des textures dans Photoshop et voir le résultat sur modèle 3D, dans une fenêtre à côté.
+Un outil pour peindre des textures dans Photoshop et visualiser le résultat sur un modèle 3D dans une fenêtre séparée.
 
 [Télécharger](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) 
 
@@ -14,9 +14,9 @@ Un outil que j’ai créé pour peindre des textures dans Photoshop et voir le r
 
 ## Comment ça marche
 
-Je pars de mon modèle dans Blender, avec ses UV déjà faits. Le bouton **Peindre dans Photoshop** prépare le document et ouvre le viewer. Ensuite, chaque **Ctrl + S** dans Photoshop actualise la texture sur le modèle.
+Le travail commence dans Blender, sur un modèle dont les UV sont déjà préparés. Le bouton **Peindre dans Photoshop** prépare le document et ouvre le viewer. Ensuite, chaque **Ctrl + S** dans Photoshop actualise la texture sur le modèle.
 
-Quand je veux récupérer le résultat dans ma scène, je clique sur **Envoyer dans Blender**.
+Le bouton **Envoyer dans Blender** applique ensuite la texture à la scène ouverte.
 
 - Tous les objets sélectionnés sur **un même document Photoshop**.
 - Les UV d’origine conservés, sans nouveau dépliage ni compactage automatique.
