@@ -32,6 +32,7 @@ def prepare(context, folder, resolution, guide):
 
     if not groups: raise ValueError('Aucune face à peindre.')
 
+    groups = {'common': [source for group in groups.values() for source in group]}
     for sources in groups.values():
 
         size=max(resolution,*[max(s['image'].size) if s['image'] else resolution for s in sources])
@@ -52,13 +53,13 @@ def prepare(context, folder, resolution, guide):
 
         for index,sources in enumerate(groups.values()):
 
-            source=sources[0];sid='set_'+str(index);label=source['material'].name if source['material'] else source['object'].name+' sans matériau'
+            source=sources[0];sid='set_'+str(index);label='Texture commune'
 
-            size=max(resolution,max(source['image'].size) if source['image'] else resolution)
+            size=max(resolution, *[max(s['image'].size) if s['image'] else resolution for s in sources])
 
             pixels=array('f',[0])* (size*size*4)
 
-            materials.fill_tile(pixels,size,size,0,0,source)
+            pixels = common_pixels(sources, size)
 
             image=bpy.data.images.new('Texture3D temporaire',width=size,height=size,alpha=True)
 
@@ -120,7 +121,7 @@ def prepare(context, folder, resolution, guide):
 
         first=sets[0]
 
-        settings={'schema':3,'name':name,'model':'Modele.glb','document':first['document'],'texture':first['texture'],'uv':first['uv'],'resolution':first['resolution'],'texture_sets':sets,'material_regions':regions,'source_objects':[o.name for o in objects],'source_object':objects[0].name,'source_blend':bpy.data.filepath,'uv_map':regions[objects[0].name][0]['uv']}
+        settings={'schema':3,'uv_layout':'original_shared','name':name,'model':'Modele.glb','document':first['document'],'texture':first['texture'],'uv':first['uv'],'resolution':first['resolution'],'texture_sets':sets,'material_regions':regions,'source_objects':[o.name for o in objects],'source_object':objects[0].name,'source_blend':bpy.data.filepath,'uv_map':regions[objects[0].name][0]['uv']}
 
         projects.save_settings(project,settings)
 
@@ -182,4 +183,39 @@ def apply(context,job):
 
         for r in regions:materials.update_material(obj,r['slot'],image,r['uv'],owner+':'+obj[projects.OBJECT_KEY]+':'+str(r['slot']))
 
+    image.update()
+    for obj, _ in affected: obj.update_tag()
+    for screen in bpy.data.screens:
+        for area in screen.areas:
+            if area.type == 'VIEW_3D':
+                area.spaces.active.shading.type = 'MATERIAL'
+                area.tag_redraw()
     return len(affected)
+
+
+def common_pixels(sources, size):
+    """Composite source colors inside their original UV faces; never repack."""
+    import numpy as np
+    result = np.full((size, size, 4), (0.8, 0.8, 0.8, 1), dtype=np.float32)
+    for source in sources:
+        tile = array('f', [0]) * (size * size * 4)
+        materials.fill_tile(tile, size, size, 0, 0, source)
+        colors = np.frombuffer(tile, dtype=np.float32).reshape(size, size, 4)
+        mesh = source['object'].data
+        mesh.calc_loop_triangles()
+        uv = mesh.uv_layers[source['uv']]
+        for tri in mesh.loop_triangles:
+            if mesh.polygons[tri.polygon_index].material_index != source['slot']: continue
+            a, b, c = [np.array(uv.data[i].uv, dtype=float) * size for i in tri.loops]
+            lower = np.maximum(0, np.floor(np.minimum(np.minimum(a,b),c)).astype(int))
+            upper = np.minimum(size, np.ceil(np.maximum(np.maximum(a,b),c)).astype(int))
+            x0,y0 = lower; x1,y1 = upper
+            if x1<=x0 or y1<=y0: continue
+            denominator = (b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1])
+            if abs(denominator)<1e-10: continue
+            x,y = np.meshgrid(np.arange(x0,x1)+.5,np.arange(y0,y1)+.5)
+            u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/denominator
+            v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/denominator
+            mask=(u>=-1e-6)&(v>=-1e-6)&(u+v<=1+1e-6)
+            result[y0:y1,x0:x1][mask]=colors[y0:y1,x0:x1][mask]
+    return array('f', result.ravel())

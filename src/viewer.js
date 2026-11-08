@@ -11,7 +11,7 @@ try {
   const renderer=new THREE.WebGLRenderer({antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.setClearColor(0x15101f);
+  renderer.setClearColor(parseInt(document.querySelector('[data-bg][aria-pressed="true"]')?.dataset.bg||'e8dcd2',16));
   document.querySelectorAll('[data-bg]').forEach(button=>button.addEventListener('click',()=>{
     renderer.setClearColor(parseInt(button.dataset.bg,16));
     document.querySelectorAll('[data-bg]').forEach(other=>other.setAttribute('aria-pressed',String(other===button)));
@@ -47,7 +47,7 @@ try {
     for(const mesh of meshes){
       let overlay=mesh.children.find(child=>child.userData.texture3dWireframe);
       if(!overlay&&wireframeEnabled){
-        overlay=new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x55e3ee,transparent:true,opacity:0.65,depthTest:true,depthWrite:false}));
+        overlay=new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x99566f,transparent:true,opacity:0.65,depthTest:true,depthWrite:false}));
         overlay.userData.texture3dWireframe=true;
         overlay.renderOrder=1;
         mesh.add(overlay);
@@ -130,6 +130,25 @@ try {
   const toggle=document.getElementById('toggle');
   const updateToggle=()=>{toggle.setAttribute('aria-label',document.body.classList.contains('sidebar-hidden')?'Afficher les commandes':'Masquer les commandes');toggle.setAttribute('aria-expanded',String(!document.body.classList.contains('sidebar-hidden')));};updateToggle();resize();
   toggle.addEventListener('click',()=>{document.body.classList.toggle('sidebar-hidden');updateToggle();resize();});
+  const panHandle=document.createElement('button');
+  panHandle.id='pan-view';panHandle.title='Glisser pour déplacer la vue';panHandle.setAttribute('aria-label','Déplacer la vue');
+  panHandle.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v5-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v6c0 4-2 7-6 7h-1c-2 0-3-1-4-3l-4-5a1.5 1.5 0 0 1 2-2l1 1"/></svg>';
+  document.body.appendChild(panHandle);
+  let panDrag=null;
+  panHandle.addEventListener('pointerdown',event=>{
+    if(event.button!==0)return;
+    cameraTransition=null;zoomGoal=null;controls.enableDamping=false;controls.update();controls.enabled=false;
+    panDrag={id:event.pointerId,x:event.clientX,y:event.clientY};panHandle.setPointerCapture(event.pointerId);event.preventDefault();
+  });
+  panHandle.addEventListener('pointermove',event=>{
+    if(!panDrag||event.pointerId!==panDrag.id)return;
+    const scale=2*camera.position.distanceTo(controls.target)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(1,viewport.clientHeight);
+    const offset=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0).multiplyScalar(-(event.clientX-panDrag.x)*scale);
+    offset.addScaledVector(new THREE.Vector3().setFromMatrixColumn(camera.matrix,1),(event.clientY-panDrag.y)*scale);
+    camera.position.add(offset);controls.target.add(offset);controls.update();panDrag.x=event.clientX;panDrag.y=event.clientY;
+  });
+  function endPan(event){if(!panDrag||event.pointerId!==panDrag.id)return;panDrag=null;if(panHandle.hasPointerCapture(event.pointerId))panHandle.releasePointerCapture(event.pointerId);controls.enabled=true;controls.enableDamping=true;}
+  panHandle.addEventListener('pointerup',endPan);panHandle.addEventListener('pointercancel',endPan);panHandle.addEventListener('lostpointercapture',endPan);
   const gizmo=document.getElementById('gizmo');
   let gizmoDrag=null,suppressAxisClick=false;
   gizmo.style.touchAction='none';
@@ -212,12 +231,13 @@ try {
         const initial=await (await fetch('/revision',{headers:auth})).json();
         const response=await fetch('/command',{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify({type:'refresh'})});
         if(!response.ok)throw Error('Ouvre le plugin Photoshop et associe ton document avant l’envoi.');
+        const refreshCommand=await response.json();
         let snapshot=null;
         const deadline=Date.now()+60000;
         while(Date.now()<deadline){
           await new Promise(resolve=>setTimeout(resolve,300));
           const state=await (await fetch('/revision',{headers:auth})).json();
-          if(state.textureVersion>initial.textureVersion){snapshot=await (await fetch('/state',{headers:auth})).json();if(snapshot.texture)break;}
+          if(state.textureVersion>initial.textureVersion){snapshot=await (await fetch('/state',{headers:auth})).json();if(snapshot.texture&&(!refreshCommand.id||snapshot.texture.refreshRequest===refreshCommand.id))break;snapshot=null;}
         }
         if(!snapshot)throw Error('La texture n’a pas été actualisée. Vérifie le document associé dans Photoshop.');
         await applyTexture({...snapshot.texture,seq:snapshot.textureVersion});
@@ -256,9 +276,9 @@ try {
         document.getElementById('host-state').textContent=info.online?'Photoshop connecté':'Photoshop déconnecté';
         document.getElementById('host-state').classList.toggle('online',info.online);
         commandButtons.forEach(button=>button.disabled=!info.online);
-        document.getElementById('document-name').textContent=info.document;
-        const sets=info.textureSets||[];document.getElementById('texture-set-row').hidden=!sets.length;
-        const signature=JSON.stringify(sets.map(s=>[s.document,s.name]));if(materialSelect.dataset.signature!==signature){materialSelect.replaceChildren(...sets.map(s=>{const option=document.createElement('option');option.value=s.document;option.textContent=s.name;return option;}));materialSelect.dataset.signature=signature;}materialSelect.value=info.activeDocument||'';materialSelect.disabled=!info.online;document.getElementById('associate').hidden=!!sets.length;document.querySelector('#associate + .caption').textContent=sets.length?'Choisis un matériau pour ouvrir son document dans Photoshop.':'Pour changer de texture, associe le document ouvert dans Photoshop.';document.querySelector('.export-section .caption').textContent=sets.length?'Applique la texture du matériau sélectionné dans Blender.':'Applique la texture aux objets de la scène Blender ouverte.';
+        document.getElementById('document-name').textContent=(info.document||'Aucun document associé').replace(/^Texture : /,'');
+        const sets=info.textureSets||[];document.getElementById('texture-set-row').hidden=sets.length<2;
+        const signature=JSON.stringify(sets.map(s=>[s.document,s.name]));if(materialSelect.dataset.signature!==signature){materialSelect.replaceChildren(...sets.map(s=>{const option=document.createElement('option');option.value=s.document;option.textContent=s.name;return option;}));materialSelect.dataset.signature=signature;}materialSelect.value=info.activeDocument||'';materialSelect.disabled=!info.online;document.getElementById('associate').hidden=!!sets.length;document.querySelector('#associate + .caption').hidden=!!sets.length;document.querySelector('#associate + .caption').textContent=sets.length?'Choisis un matériau pour ouvrir son document dans Photoshop.':'Pour changer de texture, associe le document ouvert dans Photoshop.';document.querySelector('.export-section .caption').textContent=sets.length?'Ta peinture, sur les objets de la scène ouverte.':'Ta peinture, sur les objets de la scène ouverte.';
         document.getElementById('auto-external').checked=info.auto;
         document.getElementById('bridge-status').textContent=info.online?((/^(À jour|Texture à jour)/.test(info.status)?'Synchronisation active · Ctrl + S':info.status)+(info.blenderOnline?'':' · Blender déconnecté : ouvre la scène et reprends la peinture.')):'Photoshop déconnecté. Rouvre Photoshop ou utilise Reprendre la peinture dans Blender.';
         const response=await fetch('/state?after='+revision,{headers:{'X-Texture3D-Key':externalToken},cache:'no-store'});

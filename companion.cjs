@@ -92,7 +92,7 @@ const server=http.createServer(async(req,res)=>{
       const sourceTexture=texture,destination={...targetBlender};
       if(currentProject?.textureSets?.length && (!sourceTexture.setID || body.setID!==sourceTexture.setID || sourceTexture.documentName!==currentProject.documentName))throw Error('Le matériau a changé. Attends la mise à jour puis réessaie.');
       const folder=path.join(__dirname,'cache-textures');fs.mkdirSync(folder,{recursive:true});
-      const file=path.join(folder,require('node:crypto').createHash('sha256').update(targetBlender.projectID+':'+(sourceTexture.setID||'')).digest('hex').slice(0,24)+'.png');
+      const file=path.join(folder,require('node:crypto').createHash('sha256').update(targetBlender.projectID+':'+(sourceTexture.setID||'')).digest('hex').slice(0,24)+'-'+textureVersion+'-'+require('node:crypto').randomBytes(4).toString('hex')+'.png');
       const bytes=Buffer.from(sourceTexture.url.slice(sourceTexture.url.indexOf(',')+1),'base64');
       fs.writeFileSync(file+'.tmp',bytes);fs.renameSync(file+'.tmp',file);
       const result=await waitForReturn(destination,{image:file,setID:sourceTexture.setID});
@@ -136,7 +136,7 @@ const server=http.createServer(async(req,res)=>{
       if(commands.length>=10){res.writeHead(429);res.end();return;}
       if(command.type==='importModel' && (!Array.isArray(command.bytes)||command.bytes.length>25*1024*1024)){res.writeHead(400);res.end();return;}
       if(command.type==='link'&&currentProject?.textureSets?.length){if(!currentProject.textureSets.some(s=>s.document===command.documentName))throw Error('Choisis un matériau du projet.');currentProject.documentName=command.documentName;persist();}
-      commands.push({...command,id:++commandID});res.end('{}');return;
+      const id=++commandID;commands.push({...command,id});res.end(JSON.stringify({id}));return;
     }
     if(req.method==='GET' && url.pathname==='/revision'){
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,textureVersion}));return;

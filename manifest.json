@@ -1,8 +1,8 @@
 {
   "manifestVersion": 5,
   "id": "fr.texture3d.preview",
-  "name": "Texture 3D \u00e2\u20ac\u201d Aper\u00c3\u00a7u",
-  "version": "0.7.0",
+  "name": "Texture 3D — Aperçu",
+  "version": "0.8.0",
   "main": "index.html",
   "host": {
     "app": "PS",

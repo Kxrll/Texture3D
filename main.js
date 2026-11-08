@@ -44,7 +44,8 @@ function send(message){
   outgoing.push(message);
   return flush();
 }
-async function update(){
+async function update(refreshRequest=null){
+  if(refreshRequest){const deadline=Date.now()+30000;while(busy&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,50));if(busy)throw Error("Photoshop est encore occupé. Réessaie.");clearTimeout(timer);}
   if(busy){pending=true;return;}
   const doc=Array.from(app.documents).find(d=>d.id===linkedID);
   if(!doc){setStatus('Associe ton document Photoshop depuis la grande fenêtre.');return;}
@@ -79,7 +80,7 @@ async function update(){
       }
     },{commandName:'Actualiser l’aperçu 3D',timeOut:3000});
     capturingPNG=false;
-    await send({type:'texture',documentName:doc.title,seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}});
+    await send({type:'texture',documentName:doc.title,refreshRequest,seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}});
   }catch(error){setStatus('Erreur : '+error.message);console.error(error);}
   finally{capturingPNG=false;if(tempFile)try{await tempFile.delete();}catch(_){}wasSaved=doc.saved;busy=false;if(pending){pending=false;queueUpdate();}}
 }
@@ -145,7 +146,7 @@ async function processCommands(){
       const command=queuedCommands.shift();
       try{
         if(command.type==='link'){await core.executeAsModal(async()=>{const doc=Array.from(app.documents).find(d=>d.title===command.documentName);if(doc)app.activeDocument=doc;},{commandName:'Choisir le matériau'});link(command.documentName);}
-        if(command.type==='refresh')await update();
+        if(command.type==='refresh')await update(command.id);
         if(command.type==='auto')autoEnabled=!!command.enabled;
         if(command.type==='importModel')await send({type:'model',bytes:command.bytes,name:command.name});
       }catch(error){setStatus('Erreur : '+error.message);}
@@ -155,3 +156,5 @@ async function processCommands(){
 }
 if(app.documents.length)link();
 pollBridge();
+
+

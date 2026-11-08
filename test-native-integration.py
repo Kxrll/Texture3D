@@ -40,7 +40,7 @@ for attempt in range(100):
 else:raise RuntimeError('Real project connection failed: '+str(info))
 for _ in range(100):
     state=request('/state')
-    if len(state.get('textures',{}))==2 and state['texture'].get('setID')=='set_0':break
+    if len(state.get('textures',{}))==1 and state['texture'].get('setID')=='set_0':break
     addon.multi.receive();time.sleep(.2)
 time.sleep(1)
 result=subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(root/'test-native-ps.ps1'),'-PSDPath',str(project/settings['document'])],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
@@ -55,17 +55,18 @@ for attempt in range(150):
 else:raise RuntimeError('Native PNG capture timed out: '+str(request('/info')))
 snapshot=request('/state?after=-1')
 assert snapshot['texture']['width']==4096 and snapshot['texture']['bitDepth']==16
-outcome={}
-def send():
-    try:outcome['result']=request('/return-blender',{'projectID':str(project),'textureVersion':snapshot['textureVersion'],'setID':snapshot['texture'].get('setID')})
-    except Exception as error:outcome['error']=str(error)
-threading.Thread(target=send,daemon=True).start()
-for attempt in range(200):
-    addon.multi.receive()
-    if outcome:break
-    time.sleep(0.2)
-assert 'error' not in outcome,outcome
-assert outcome.get('result',{}).get('count')==1,outcome
+for repeat in range(2):
+ outcome={}
+ def send():
+     try:outcome['result']=request('/return-blender',{'projectID':str(project),'textureVersion':snapshot['textureVersion'],'setID':snapshot['texture'].get('setID')})
+     except Exception as error:outcome['error']=str(error)
+ threading.Thread(target=send,daemon=True).start()
+ for attempt in range(200):
+     addon.multi.receive()
+     if outcome:break
+     time.sleep(0.2)
+ assert 'error' not in outcome,outcome
+ assert outcome.get('result',{}).get('count')==1,outcome
 image=next(n.image for n in obj.active_material.node_tree.nodes if n.name=='Texture3D BaseColor')
 assert tuple(image.size)==(4096,256)
 assert image.packed_file and bytes(image.packed_file.data)[24]==16

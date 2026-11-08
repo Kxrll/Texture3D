@@ -1,193 +1,52 @@
-NOUVEAU DANS TEXTURE3D 0.7
-=========================
-Les nouveaux projets gardent les UV de Blender exactement comme ils sont.
-Il y a maintenant un PSD par matériau, sans atlas commun ni nouvelle carte UV.
-Les objets qui partagent un matériau partagent la même peinture ; leurs UV
-superposés partagent donc aussi les mêmes pixels.
+﻿TEXTURE3D STUDIO — VERSION 0.8.0
 
-Dans le viewer, utilise « Matériau à peindre » pour choisir le document
-Photoshop. Le modèle complet reste visible. Ctrl + S actualise sa texture.
-« Envoyer dans Blender » applique le matériau sélectionné : répète cette
-opération pour les autres matériaux que tu as peints.
+INSTALLER OU METTRE À JOUR
+1. Enregistre ton travail, puis ferme Blender et Photoshop.
+2. Lance Texture3D-Setup-0.8.0.exe.
+3. Vérifie les logiciels détectés et clique sur Installer ou Mettre à jour.
+4. Ouvre Blender. Sélectionne ton modèle avec ses UV et ouvre Texture3D
+   dans la barre latérale (touche N). Lance Peindre dans Photoshop.
 
-Crée un NOUVEAU PROJET pour profiter de ce fonctionnement. Les anciens
-projets restent compatibles avec leur atlas et leurs cartes UV Texture3D.
-Ils ne sont pas convertis automatiquement : tes anciennes peintures restent
-conservées. Garde tous les PSD du nouveau projet dans son dossier.
+Une ancienne installation réalisée avec notre installateur est remplacée
+au même emplacement. Il ne faut pas la désinstaller avant. Le plugin
+Photoshop garde le même identifiant et Blender le même module.
+Les profils Blender existants sont mis à jour ; l'extension est activée
+pour les versions de Blender détectées sur ce PC.
+Les projets, PSD et fichiers personnels sont conservés. Une sauvegarde
+reste dans %LOCALAPPDATA%\Texture3D\Recovery en cas de besoin.
+Elle n'est ni enregistrée comme application, ni lancée automatiquement.
 
-TEXTURE3D — GUIDE DE DÉMARRAGE
-============================
+L'installation est personnelle, dans %LOCALAPPDATA%\Programs\Texture3D.
+Node.js est inclus : aucune installation séparée n'est nécessaire.
+L'installateur ne demande pas d'élévation administrateur. Les règles de
+sécurité du PC ou d'Adobe peuvent néanmoins empêcher l'installation.
+Le fichier n'est pas signé avec un certificat commercial.
 
-J’ai préparé deux façons d’utiliser Texture3D : une installation classique,
-ou une version portable si tu préfères garder l’outil dans un dossier.
-Les deux permettent de peindre dans Photoshop et de voir le résultat sur
-le modèle dans une fenêtre 3D séparée.
+VERSION PORTABLE
+Extrais Texture3D-Portable-0.8.0.zip dans un dossier où tu peux écrire.
+Installe le CCX du sous-dossier distribution avec Creative Cloud, puis
+lance LANCER_BLENDER_PORTABLE.vbs. L'extension Blender est chargée pour
+cette session. Le plugin Photoshop nécessite toujours l'installation Adobe.
+Ne lance pas la version portable et l'installation normale en même temps :
+elles utilisent le même plugin Photoshop et le même port local.
+Pour remplacer une ancienne version portable, utilise un nouveau dossier,
+conserve tes projets et réinstalle son CCX. L'installateur ne remplace pas
+les dossiers portables ou les plugins chargés dans UXP Developer Tool.
+Désactive une ancienne copie de développement dans UXP Developer Tool.
 
+PEINDRE
+Tous les objets sélectionnés partagent un même document Photoshop.
+Les UV existants sont conservés. Ils ne sont ni redépliés, ni compactés.
+Des UV superposés partagent donc la même peinture.
+Les traits UV sont noirs et exclus de la texture affichée et renvoyée.
+Ctrl+S met à jour le viewer ; Envoyer dans Blender applique la peinture
+à la scène ouverte. Enregistre aussi ton fichier .blend.
+Un ancien projet créé avec l'ancien atlas peut nécessiter un nouveau
+projet Texture3D ; l'installateur ne transforme pas ses UV ni son PSD.
 
-1. AVANT DE COMMENCER
---------------------
-
-Il te faut :
-  • Windows 64 bits ;
-  • Blender et Photoshop déjà installés ;
-  • Adobe Creative Cloud et son outil d’installation de plugins ;
-  • Microsoft Edge pour la fenêtre 3D.
-
-La version a été testée avec Blender 5.1 et Photoshop 27.11.
-Node.js est inclus : tu n’as rien à installer séparément pour lui.
-UXP Developer Tools n’est pas nécessaire.
-
-Décompresse TOUT le RAR dans un dossier où tu peux écrire, par exemple
-Documents. Ne lance pas les fichiers directement depuis WinRAR.
-Choisis ensuite UNE des deux méthodes ci-dessous.
-
-
-2. MÉTHODE CONSEILLÉE : L’INSTALLATEUR
--------------------------------------
-
-  1) Enregistre ton travail, puis ferme Blender et Photoshop.
-  2) Lance « Installer Texture3D.exe ».
-  3) Blender et Photoshop sont détectés automatiquement. Vérifie les
-     informations affichées, puis confirme l’installation.
-     Si Blender n’est pas trouvé, sélectionne son fichier blender.exe.
-  4) Attends le message de fin. Le viewer, l’extension Blender et le plugin
-     Photoshop sont installés par le même programme.
-  5) Ouvre Blender : dans la vue 3D, appuie sur N et ouvre Texture3D.
-
-L’outil est installé dans ton dossier utilisateur :
-  %LOCALAPPDATA%\Programs\Texture3D
-
-Un raccourci Texture3D est aussi ajouté au menu Démarrer.
-Pour le retirer ensuite, utilise les applications installées de Windows.
-
-
-3. AUTRE MÉTHODE : LA VERSION PORTABLE
---------------------------------------
-
-  1) Garde le dossier « Texture3D portable » à l’emplacement de ton choix.
-     Il doit rester complet et accessible en écriture.
-  2) Ferme Photoshop, puis ouvre ce fichier par double-clic :
-       Texture3D portable\distribution\fr.texture3d.studio_PS.ccx
-     Adobe Creative Cloud propose d’installer le plugin. Confirme.
-     Si le plugin est déjà installé, cette étape n’est pas à refaire.
-  3) Dans le dossier portable, lance :
-       LANCER_BLENDER_PORTABLE.vbs
-  4) Blender s’ouvre avec Texture3D activé pour cette session.
-     Ouvre ton fichier .blend dans cette fenêtre.
-  5) Dans la vue 3D, appuie sur N, puis ouvre l’onglet Texture3D.
-
-À chaque nouvelle session, utilise ce lanceur pour ouvrir Blender.
-L’extension portable n’est pas copiée dans l’installation de Blender et
-ses préférences ne sont pas enregistrées automatiquement.
-
-La version portable inclut le viewer et son moteur. Le plugin Photoshop
-reste nécessaire : « portable » ne veut pas dire « sans plugin Adobe ».
-Évite d’utiliser les versions installée et portable en même temps.
-
-
-4. PREMIER ESSAI : BLENDER → PHOTOSHOP → BLENDER
------------------------------------------------
-
-DANS BLENDER
-  1) Prépare les UV du modèle. Ils doivent rester dans le carré 0–1.
-     Si l’outil signale un dépassement, sélectionne les îlots dans
-     l’éditeur UV, utilise UV > Compacter les îlots, puis réessaie.
-  2) En mode Objet, sélectionne les objets à peindre.
-     Si une partie n’est pas sélectionnée, un message permet de continuer
-     avec la sélection ou de sélectionner tous les objets concernés.
-  3) Dans Texture3D, lance Nouveau projet / Peindre dans Photoshop.
-     Photoshop et la fenêtre 3D s’ouvrent avec le projet.
-  4) Enregistre ton .blend pour conserver l’association au projet.
-
-DANS PHOTOSHOP
-  5) Peins sur le calque « Peinture ».
-     Le groupe « Repère UV » sert de guide : ne peins pas dans ce groupe.
-  6) Fais Ctrl + S. Si « À chaque enregistrement » est activé dans le
-     viewer, la texture du modèle se met à jour.
-     Tu peux aussi utiliser « Actualiser la texture ».
-
-DANS LE VIEWER
-  7) Vérifie le résultat, puis clique sur « Envoyer dans Blender »
-     quand tu veux appliquer la texture à la scène Blender ouverte.
-
-IMPORTANT : Ctrl + S actualise le viewer. Le retour dans Blender reste
-manuel. Les lignes et libellés du guide UV ne sont pas envoyés au modèle.
-Enregistre aussi le .blend après un retour pour garder le résultat.
-
-Pour reprendre une peinture, ouvre ton .blend puis utilise
-« Reprendre la peinture » : tu retrouves le PSD du projet.
-Conserve le dossier du projet avec tes fichiers.
-Avec la version portable, les projets sont dans « Projets Texture3D »,
-à côté du dossier « Texture3D portable ».
-
-
-5. COMMANDES DE LA VUE 3D
--------------------------
-
-  Glisser                  Tourner autour du modèle
-  Clic droit + glisser      Déplacer la vue
-  Molette                  Zoomer / dézoomer
-  Double-clic / Recentrer   Retrouver le modèle dans la vue
-  Gizmo X / Y / Z           Choisir une vue ou tourner avec la souris
-  Maillage                 Afficher / masquer les arêtes cyan
-  Plein écran              Agrandir la vue ; Échap pour quitter
-  Panneau                  Afficher / masquer les commandes
-
-Le maillage est uniquement un affichage : il n’est pas ajouté à la texture.
-Pour rouvrir seulement le viewer, utilise OUVRIR_VIEWER.vbs dans le dossier
-portable, ou le raccourci Texture3D pour la version installée.
-
-
-6. SI TU N’AS PAS LES DROITS ADMINISTRATEUR
-------------------------------------------
-
-Tu peux lancer l’installateur normalement, sans « Exécuter en tant
-qu’administrateur ». Il utilise ton espace utilisateur.
-
-J’ai testé le lancement de l’EXE ainsi que la suppression et l’installation
-du plugin Photoshop via l’outil Adobe, depuis une session sans élévation :
-ces étapes ont réussi sans mot de passe administrateur sur le PC de test.
-Cela ne garantit pas le même résultat sur toutes les configurations.
-
-Si Windows ou Adobe demande un mot de passe administrateur que tu n’as
-pas, annule cette étape et demande à la personne qui gère le PC.
-La version portable peut éviter l’installation classique de Texture3D,
-mais elle ne supprime pas les autorisations nécessaires au plugin Adobe.
-
-L’installateur n’est pas signé. Un avertissement sur l’éditeur inconnu
-n’est pas la même chose qu’une demande de droits administrateur.
-Des règles de sécurité peuvent aussi bloquer les EXE, les scripts ou les
-plugins : dans ce cas, fais autoriser l’outil par la personne qui gère le PC.
-
-
-7. SI QUELQUE CHOSE NE FONCTIONNE PAS
-------------------------------------
-
-Photoshop déconnecté :
-  Vérifie que le plugin « Texture3D Studio » est installé et activé dans
-  Creative Cloud. Relance Photoshop, puis reprends la peinture depuis
-  Blender. Ne charge pas une ancienne version de développement en parallèle.
-
-Blender déconnecté :
-  Garde la scène d’origine ouverte et utilise Reprendre la peinture ou
-  Reconnecter dans le panneau Texture3D.
-
-UV hors du carré :
-  Compacte les îlots dans Blender, puis réessaie. Aucun compactage
-  automatique n’est effectué par l’outil.
-
-Matériau incompatible :
-  Utilise un Principled BSDF directement relié à la sortie, avec une couleur
-  de base uniforme ou une texture image directement branchée.
-  Les textures procédurales, UDIM et coordonnées transformées nécessitent
-  une préparation manuelle. Plusieurs matériaux sont pris en charge.
-
-Texture trop grande :
-  La limite est de 8192 pixels par côté et 128 Mio pour le PNG transmis.
-
-Installation interrompue :
-  Lis le message affiché. Le journal se trouve ici :
-    %TEMP%\Texture3D-installation.log
-
-Si tu demandes de l’aide, indique les versions de Blender et Photoshop
-et joins le message d’erreur exact.
+SI L'INSTALLATION ÉCHOUE
+Lis le message dans la fenêtre et ouvre Consulter le journal.
+Le journal est dans %TEMP%\Texture3D-installation.log.
+L'installateur tente de restaurer l'ancienne application et les extensions.
+Une restauration Adobe refusée est signalée explicitement : conserve
+le journal et la sauvegarde, puis relance après résolution du problème.

@@ -1,18 +1,59 @@
+<div align="center">
+
 # Texture3D
 
-Peins tes textures dans Photoshop et visualise le résultat dans le viewer 3D.
+**Blender pour le modèle. Photoshop pour la peinture.**
 
-## Télécharger
+Un outil que j’ai créé pour peindre mes textures dans Photoshop et voir le résultat sur mon modèle 3D, dans une fenêtre à côté.
 
-Télécharge le RAR **installateur + portable** dans [les releases](https://github.com/Kxrll/Texture3D/releases). Décompresse tout et lis LIRE EN PREMIER.txt.
+[Télécharger](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) · [Développement](docs/DEVELOPPEMENT.md)
 
-## Utilisation
+![Le viewer Texture3D](docs/viewer.png)
 
-Le tutoriel complet est dans [GUIDE.txt](GUIDE.txt). Windows 64 bits, Blender, Photoshop et Edge nécessaires. Testé avec Blender 5.1 et Photoshop 27.11. Node.js est inclus. Le plugin Photoshop reste nécessaire en mode portable. Les autorisations Adobe peuvent varier selon le PC. 
+</div>
 
-## Reprendre le développement sur un autre ordinateur
+## Comment ça marche
 
-Le dépôt contient maintenant les sources complètes du viewer, du service local, du plugin Photoshop, de l’extension Blender, des tests et de l’installateur.
+Je pars de mon modèle dans Blender, avec ses UV déjà faits. Le bouton **Peindre dans Photoshop** prépare le document et ouvre le viewer. Ensuite, chaque **Ctrl + S** dans Photoshop actualise la texture sur le modèle.
+
+Quand je veux récupérer le résultat dans ma scène, je clique sur **Envoyer dans Blender**.
+
+- Tous les objets sélectionnés sur **un même document Photoshop**.
+- Les UV d’origine conservés, sans nouveau dépliage ni compactage automatique.
+- Des guides UV noirs, exclus de la texture envoyée.
+- Une fenêtre 3D séparée pour travailler sur deux écrans.
+- Rotation, zoom, déplacement, gizmo et affichage du maillage.
+
+## Installation
+
+**Windows 64 bits · Blender · Photoshop · Adobe Creative Cloud Desktop · Edge**
+
+Testé avec Blender 5.1 et Photoshop 27.11. Versions minimales déclarées : Blender 4.2 et Photoshop 26.
+
+1. Télécharge **Texture3D-Setup-0.8.0.exe** dans [la release](https://github.com/Kxrll/Texture3D/releases/tag/v0.8.0).
+2. Ferme Blender et Photoshop, puis lance l’installateur.
+3. Ouvre Blender, sélectionne ton modèle et retrouve **Texture3D** dans la barre latérale avec **N**.
+
+Si une ancienne version est installée, lance directement le nouvel installateur. Il remplace l’application au même emplacement et conserve tes projets. Pas besoin de désinstaller avant.
+
+<details>
+<summary>Voir l’installateur</summary>
+
+![Installateur Texture3D](docs/installer.png)
+
+</details>
+
+La release contient aussi une **version portable** et un **pack RAR avec les deux versions**. Le plugin Photoshop reste nécessaire en portable. Le [guide](installer/LISEZ-MOI-RELEASE.txt) explique les étapes et le fonctionnement sans droits administrateur. L’exécutable n’est pas signé ; les règles du PC ou d’Adobe peuvent bloquer son installation.
+
+## À savoir
+
+Les UV doivent être prêts dans Blender et rester dans le carré 0–1. Des UV superposés partagent la même peinture sur le document commun. L’outil ne déplace pas les îlots pour les séparer.
+
+Les anciens projets utilisant le premier système d’atlas ne sont pas convertis automatiquement : il peut être nécessaire de créer un nouveau projet Texture3D. Garde tes anciens PSD et fichiers Blender.
+
+## Le code source
+
+Tout le code est ici : viewer, service local, plugin Photoshop, extension Blender, installateur et tests. Les exécutables sont dans les releases ; les projets personnels et les clés locales ne sont pas dans Git.
 
 ```powershell
 git clone https://github.com/Kxrll/Texture3D.git
@@ -23,45 +64,8 @@ npm run build
 npm run check
 ```
 
-Pour développer, Node.js et npm doivent être installés sur ce poste. Le moteur intégré concerne les versions distribuées aux utilisateurs.
+Pour brancher les applications aux sources, reconstruire l’installateur ou reprendre sur un autre ordinateur : **[guide de développement](docs/DEVELOPPEMENT.md)**.
 
-### Organisation du code
+## Un souci ?
 
-- `src/viewer.js`, `studio.css`, `restyle.cjs` : vue 3D et interface ; `viewer/` contient le résultat utilisable.
-- `companion.cjs` : service local et échanges entre les applications.
-- `main.js`, `index.html`, `manifest.json` : plugin Photoshop UXP.
-- `blender_addon/texture3d_blender/` : extension Blender et gestion des matériaux/projets.
-- `open-photoshop-project.ps1`, `prepare-photoshop-project.jsx` : ouverture et préparation du PSD.
-- `installer/` : sources C# et PowerShell de l’installateur Windows et de sa désinstallation.
-- `test-*` : tests ; certains utilisent Blender, Photoshop ou un service déjà lancé et créent des projets de test.
-
-### Configuration locale et Photoshop
-
-`node init-config.cjs` crée `companion-config.json` avec une clé locale aléatoire, sans écraser une configuration existante. Ce fichier est ignoré par Git. Le service et le plugin doivent utiliser la même configuration : ne pas associer un ancien plugin empaqueté à une nouvelle clé locale.
-
-Pour charger le plugin en développement, utiliser UXP Developer Tools avec le `manifest.json` à la racine. Ne pas charger simultanément la version installée `fr.texture3d.studio` et la version de développement `fr.texture3d.preview`.
-
-Pour installer l’extension Blender depuis les sources :
-
-```powershell
-& 'C:\Program Files\Blender Foundation\Blender\blender.exe' --background --python-exit-code 1 --python install-blender-addon.py
-```
-
-Adapter le chemin à sa version de Blender. Ce script active l’extension et enregistre les préférences utilisateur. Il est préférable de fermer Blender avant cette opération.
-
-### Préparer une distribution
-
-1. `npm run build` pour reconstruire le viewer.
-2. `node build-distribution.cjs` pour préparer `distribution/photoshop`.
-3. Empaqueter ce dossier via UXP Developer Tools en `distribution/fr.texture3d.studio_PS.ccx`.
-4. `powershell -ExecutionPolicy Bypass -File installer/build.ps1` pour construire l’EXE Windows. Ce script nécessite Node.js dans `C:\Program Files\nodejs`, le compilateur .NET Framework Windows et un accès Internet pour la licence du moteur embarqué. Le moteur embarqué est actuellement prévu pour Node.js 22.17.1.
-
-Les exécutables et archives se téléchargent dans les releases, pas dans le code source. Les projets personnels, caches, configurations et fichiers de test temporaires ne sont pas versionnés.
-
-### Synchroniser le travail
-
-Avant de travailler sur un autre poste, récupérer les derniers changements avec `git pull --ff-only` depuis un dossier sans modifications en attente. Après les modifications, vérifier `git diff`, lancer les contrôles adaptés, puis faire un commit et `git push`. Les consignes pour maintenir ce dépôt à jour sont aussi dans `AGENTS.md`.
-
-## Version 0.7 : conserver les UV
-
-Les nouveaux projets utilisent un PSD par matériau avec les UV d’origine, sans les réduire ni ajouter de carte UV. Le viewer affiche tout le modèle et permet de choisir le matériau à peindre. Le retour Blender concerne le matériau choisi. Les anciens projets en atlas restent compatibles ; créer un nouveau projet pour adopter le nouveau mode. Les limites de textures procédurales/UDIM restent inchangées.
+Ouvre une [issue](https://github.com/Kxrll/Texture3D/issues) avec les versions de Blender et Photoshop, ce que tu faisais et le message d’erreur. Une capture aide aussi.

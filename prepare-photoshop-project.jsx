@@ -29,7 +29,7 @@
     var guideGroup = doc.layerSets.add(); guideGroup.name = 'Repère UV';
     uv.move(guideGroup, ElementPlacement.INSIDE);
     if (project.regions) {
-        var guideColor = new SolidColor(); guideColor.rgb.hexValue = '23DCEC';
+        var guideColor = new SolidColor(); guideColor.rgb.hexValue = '202020';
         var w = doc.width.as('px'), h = doc.height.as('px');
         for (var objectName in project.regions) {
             var regions = project.regions[objectName];

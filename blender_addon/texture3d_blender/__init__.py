@@ -1,6 +1,6 @@
 bl_info = {
     'name': 'Texture3D — Peindre dans Photoshop', 'author': 'Texture3D',
-    'version': (0, 7, 0), 'blender': (4, 2, 0),
+    'version': (0, 8, 0), 'blender': (4, 2, 0),
     'location': 'Vue 3D > Barre latérale (N) > Texture3D', 'category': 'Paint',
 }
 
@@ -55,7 +55,7 @@ def uv_guide(mesh, uv, path, size, pixels=None):
             for step in range(steps + 1):
                 x, y = round(x0 + (x1 - x0) * step / steps), round(y0 + (y1 - y0) * step / steps)
                 offset = (y * size + x) * 4
-                pixels[offset:offset + 4] = b'\x23\xdc\xec\xff'
+                pixels[offset:offset + 4] = b'\x20\x20\x20\xff'
     write_png(path, size, size, pixels)
     return pixels
 

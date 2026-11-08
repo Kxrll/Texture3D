@@ -21,6 +21,9 @@ def source_for(obj, slot):
     shader = shader_for(material)
     color = tuple(shader.inputs['Base Color'].default_value) if shader else tuple(material.diffuse_color) if material else (0.8, 0.8, 0.8, 1)
     uv = next((u.name for u in obj.data.uv_layers if u.active_render), None)
+    original_uv = obj.data.uv_layers.active
+    if original_uv is None or original_uv.name.startswith('Texture3D '):
+        original_uv = next((u for u in obj.data.uv_layers if not u.name.startswith('Texture3D ')), None)
     image = None
     if shader and shader.inputs['Base Color'].is_linked:
         link = shader.inputs['Base Color'].links[0]
@@ -37,6 +40,12 @@ def source_for(obj, slot):
             if mapping.type != 'UVMAP':
                 raise ValueError(material.name + ' : utilise une carte UV directe sans transformation intermédiaire.')
             uv = mapping.uv_map or uv
+        # A previous Texture3D material may still point to its legacy atlas.
+        # New projects must read the user's existing original UV layer instead.
+        if node.get(OWNER) and original_uv is not None:
+            if uv != original_uv.name:
+                image = None  # Legacy atlas pixels cannot be reused on another UV layout.
+            uv = original_uv.name
     layer = obj.data.uv_layers.get(uv) if uv else None
     if not layer:
         raise ValueError(obj.name + ' : déplie les UV avant de lancer la peinture.')

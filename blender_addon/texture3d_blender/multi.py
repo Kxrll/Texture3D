@@ -182,6 +182,7 @@ def apply(job):
     if projects.read_settings(projects.project_path(bpy.context)).get('schema') == 3:
         from . import texture_sets
         return texture_sets.apply(bpy.context, job)
+    raise ValueError('Ce projet utilise un ancien atlas. Sélectionne ta carte UV d’origine, puis crée un Nouveau projet pour peindre sans ajouter de carte UV. L’ancienne peinture reste conservée.')
     targets = projects.validate_return(bpy.context, job['projectID'])
     bindings[job['projectID']] = targets
     for obj, uv, *_ in targets:

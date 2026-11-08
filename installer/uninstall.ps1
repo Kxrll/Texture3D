@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 try {
  if(Get-Process blender,Photoshop -ErrorAction SilentlyContinue){throw 'Ferme Blender et Photoshop avant de désinstaller Texture3D.'}
@@ -7,8 +7,21 @@ try {
  $expected=[IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\Texture3D'))
  if($root -ne $expected){throw 'Dossier de désinstallation inattendu.'}
  $installation=Get-Content (Join-Path $root 'installation.json') -Raw | ConvertFrom-Json
- & $installation.blender --background --python-exit-code 1 --python (Join-Path $root 'uninstall-addon.py')
- if($LASTEXITCODE -ne 0){throw 'Impossible de désactiver l''extension Blender.'}
+ $executables=if($installation.blenders){$installation.blenders}else{@($installation.blender)}
+ foreach($exe in $executables){if(Test-Path -LiteralPath $exe){
+  & $exe --background --python-exit-code 1 --python (Join-Path $root 'uninstall-addon.py')
+  if($LASTEXITCODE -ne 0){throw 'Impossible de désactiver l''extension Blender.'}
+ }}
+ # Remove owned copies in profiles whose Blender executable is no longer present.
+ $profiles=[IO.Path]::GetFullPath((Join-Path $env:APPDATA 'Blender Foundation\Blender'))
+ foreach($profile in @(Get-ChildItem -LiteralPath $profiles -Directory -ErrorAction SilentlyContinue)){
+  $addon=[IO.Path]::GetFullPath((Join-Path $profile.FullName 'scripts\addons\texture3d_blender'))
+  $location=Join-Path $addon 'tool-location.json'
+  if($addon.StartsWith($profiles+'\',[StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $location)){
+   $settings=Get-Content -LiteralPath $location -Raw|ConvertFrom-Json
+   if([IO.Path]::GetFullPath($settings.directory) -eq $root){Remove-Item -LiteralPath $addon -Recurse -Force}
+  }
+ }
  $upia=Join-Path $env:CommonProgramFiles 'Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe'
  & $upia /remove 'Texture3D Studio'
  if($LASTEXITCODE -ne 0){throw 'Adobe n''a pas retiré le plugin. Retire Texture3D Studio dans Creative Cloud, puis relance la désinstallation.'}

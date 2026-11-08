@@ -19,7 +19,9 @@ original={o.name:([(uv.name,[tuple(i.uv) for i in uv.data]) for uv in o.data.uv_
 with tempfile.TemporaryDirectory() as tmp:
  folder=Path(tmp)/'Tool';folder.mkdir()
  project,settings=addon.prepare_project(bpy.context,folder,128)
- assert settings['schema']==3 and len(settings['texture_sets'])==2
+ for obj in [a,b]:
+  assert original[obj.name][0]==[(uv.name,[tuple(i.uv) for i in uv.data]) for uv in obj.data.uv_layers], 'UV layer added during Photoshop preparation'
+ assert settings['schema']==3 and len(settings['texture_sets'])==1
  assert all(s['resolution']==128 for s in settings['texture_sets'])
  for r in settings['material_regions'].values():assert all(i['scale']==1 and i['x']==0 and i['y']==0 for i in r)
  for texture_set in settings['texture_sets']:
@@ -27,7 +29,7 @@ with tempfile.TemporaryDirectory() as tmp:
  for o in [a,b]:
   assert original[o.name]==([(uv.name,[tuple(i.uv) for i in uv.data]) for uv in o.data.uv_layers],[p.material_index for p in o.data.polygons]),'UV or slots changed'
  assert a.material_slots[0].material.node_tree.nodes.get('Texture3D BaseColor').image == b.material_slots[0].material.node_tree.nodes.get('Texture3D BaseColor').image
- assert a.material_slots[0].material.node_tree.nodes.get('Texture3D BaseColor').image != a.material_slots[1].material.node_tree.nodes.get('Texture3D BaseColor').image
+ assert a.material_slots[0].material.node_tree.nodes.get('Texture3D BaseColor').image == a.material_slots[1].material.node_tree.nodes.get('Texture3D BaseColor').image
  assert abs(a.material_slots[0].material.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value-.23)<1e-5
- print('PASS: 2 materials across 2 objects, shared texture, separate texture, original UVs and material slots unchanged after repeated returns.')
+ print('PASS: 2 materials across 2 objects, one shared canvas, original UVs and material slots unchanged after repeated returns.')
 addon.unregister()

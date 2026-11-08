@@ -9,6 +9,14 @@ root = Path(__file__).resolve().parent
 addons = Path(bpy.utils.user_resource('SCRIPTS', path='addons', create=True))
 target = addons / 'texture3d_blender'
 target.mkdir(exist_ok=True)
+# Remove obsolete managed modules (such as the former automatic packer).
+source = root / 'blender_addon' / 'texture3d_blender'
+for old in target.glob('*.py'):
+    if not (source / old.name).exists():
+        old.unlink()
+cache = target / '__pycache__'
+if cache.is_dir():
+    shutil.rmtree(cache)
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / '__init__.py', target / '__init__.py')
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'multi.py', target / 'multi.py')
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'projects.py', target / 'projects.py')

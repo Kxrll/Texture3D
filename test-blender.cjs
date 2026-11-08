@@ -24,7 +24,7 @@ const config=require('./companion-config.json');
   await page.waitForFunction(()=>document.getElementById('connection').textContent.includes('Texture à jour'));
   await page.getByRole('button',{name:'Envoyer dans Blender',exact:true}).click();
   await page.waitForFunction(()=>document.getElementById('export-status').textContent.includes('2 objet(s) mis à jour'));
-  assert.deepEqual(returned,{projectID:state.projectID,textureVersion:state.textureVersion+1});
+  assert.deepEqual(returned,{projectID:state.projectID,textureVersion:state.textureVersion+1,...(state.texture.setID?{setID:state.texture.setID}:{})});
   assert.deepEqual(errors,[]);
   console.log('PASS: viewer button requests fresh texture and native PNG return, without geometry export.');
  }finally{await browser.close();}
