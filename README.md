@@ -69,3 +69,4 @@ Pour brancher les applications aux sources, reconstruire l’installateur ou rep
 ## Un souci ?
 
 Ouvre une [issue](https://github.com/Kxrll/Texture3D/issues) avec les versions de Blender et Photoshop, ce que tu faisais et le message d’erreur. Une capture aide aussi.
+
