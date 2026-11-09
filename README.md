@@ -53,6 +53,8 @@ Les anciens projets utilisant le premier système d’atlas ne sont pas converti
 
 ## Le code source
 
+Les sources de développement incluent maintenant le parcours **Substance 3D Painter ↔ Photoshop**, avec un document commun, le modèle complet dans le viewer et le retour de la peinture comme ressource Texture. Voir le [guide Painter](docs/PAINTER.md) et le [détail des modifications](MODIFICATIONS-PAINTER-PHOTOSHOP.txt). Ces ajouts ne sont pas encore inclus dans les exécutables de la release 0.8.0.
+
 Tout le code est ici : viewer, service local, plugin Photoshop, extension Blender, installateur et tests. Les exécutables sont dans les releases ; les projets personnels et les clés locales ne sont pas dans Git.
 
 ```powershell

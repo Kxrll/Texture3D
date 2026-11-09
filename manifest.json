@@ -20,6 +20,11 @@
   "entrypoints": [
     {
       "type": "command",
+      "id": "sendToPainter",
+      "label": { "default": "Envoyer la peinture dans Painter" }
+    },
+    {
+      "type": "command",
       "id": "texture3d",
       "label": {
         "default": "Ouvrir Texture 3D"

@@ -3,7 +3,7 @@ const {spawn}=require('node:child_process');
 (async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'texture3d-bridge-'));
  const config={port:19746,token:require('node:crypto').randomBytes(20).toString('hex')};
- fs.copyFileSync('companion.cjs',path.join(dir,'companion.cjs'));
+ for(const name of ['companion.cjs','painter-bridge.cjs'])fs.copyFileSync(name,path.join(dir,name));
  fs.writeFileSync(path.join(dir,'companion-config.json'),JSON.stringify(config));
  const child=spawn(process.execPath,[path.join(dir,'companion.cjs')],{windowsHide:true,stdio:'ignore'});
  const request=(route,body)=>fetch('http://127.0.0.1:'+config.port+route,{method:body===undefined?'GET':'POST',headers:{'X-Texture3D-Key':config.token},body:body===undefined?undefined:JSON.stringify(body)});

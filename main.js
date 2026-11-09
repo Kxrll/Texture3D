@@ -6,43 +6,32 @@ const companionURL = 'http://127.0.0.1:' + companion.port;
 let linkedID=null, documentLabel='Aucun document associé', status='Ouvre la grande fenêtre Texture3D.';
 let busy=false, pending=false, timer=null, sequence=0, autoEnabled=true, wasSaved=null;
 let textureUpdatedAt=0, stopped=false, bridgeTimer=null, bridgeAck=[];
-let lastTexture=null, lastModel=null, connected=false, sending=false;
+let lastTexture=null, lastModel=null, connected=false;
 let capturingPNG=false, desiredDocument=null;
 const bridgeSession=String(Date.now())+'-'+Math.random().toString(36).slice(2);
 const queuedCommands=[],seenCommands=new Set();
 let processingCommands=false;
-const outgoing=[];
+let transfer=Promise.resolve();
+const commandResults={};
 const setStatus=text=>{status=text;};
 
 async function request(route,body){
   const controller=typeof AbortController==='function'?new AbortController():null;
-  const timeout=controller?setTimeout(()=>controller.abort(),route==='/state'?30000:8000):null;
+  const timeout=controller?setTimeout(()=>controller.abort(),route==='/painter/return'?40000:route==='/state'?30000:8000):null;
   try{
     const response=await fetch(companionURL+route,{method:'POST',signal:controller?.signal,headers:{'Content-Type':'application/json','X-Texture3D-Key':companion.token},body:JSON.stringify(body||{})});
-    if(!response.ok)throw Error('Connexion au viewer : '+response.status);
+    if(!response.ok){let detail;try{detail=(await response.json()).error;}catch(_){}throw Error(detail||'Connexion à Texture3D : '+response.status);}
     return response;
   }finally{if(timeout!==null)clearTimeout(timeout);}
-}
-async function flush(){
-  if(sending)return;
-  sending=true;
-  try{
-    while(outgoing.length){
-      const message=outgoing[0];
-      await request('/state',message);
-      if(outgoing[0]===message)outgoing.shift();
-      if(message.type==='texture'){textureUpdatedAt=Date.now();setStatus('Texture à jour · il y a 0 s');}
-    }
-  }catch(error){connected=false;setStatus('Viewer déconnecté. Relance OUVRIR_VIEWER.vbs.');}
-  finally{sending=false;}
 }
 function send(message){
   if(message.type==='texture')lastTexture=message;
   if(message.type==='model')lastModel=message;
-  const index=outgoing.findIndex(item=>item.type===message.type);
-  if(index>=0)outgoing.splice(index,1);
-  outgoing.push(message);
-  return flush();
+  const task=transfer.catch(()=>{}).then(()=>request('/state',message));
+  transfer=task;
+  return task.then(()=>{
+    if(message.type==='texture'){textureUpdatedAt=Date.now();setStatus('Texture à jour · il y a 0 s');}
+  },error=>{connected=false;throw error;});
 }
 async function update(refreshRequest=null){
   if(refreshRequest){const deadline=Date.now()+30000;while(busy&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,50));if(busy)throw Error("Photoshop est encore occupé. Réessaie.");clearTimeout(timer);}
@@ -80,8 +69,10 @@ async function update(refreshRequest=null){
       }
     },{commandName:'Actualiser l’aperçu 3D',timeOut:3000});
     capturingPNG=false;
-    await send({type:'texture',documentName:doc.title,refreshRequest,seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}});
-  }catch(error){setStatus('Erreur : '+error.message);console.error(error);}
+    const message={type:'texture',documentName:doc.title,refreshRequest,seq:++sequence,url:'data:image/png;base64,'+capture.base64,width,height,bitDepth:capture.bitDepth,bounds:{left:0,top:0,right:width,bottom:height}};
+    await send(message);
+    return message;
+  }catch(error){setStatus('Erreur : '+error.message);console.error(error);if(refreshRequest)throw error;}
   finally{capturingPNG=false;if(tempFile)try{await tempFile.delete();}catch(_){}wasSaved=doc.saved;busy=false;if(pending){pending=false;queueUpdate();}}
 }
 function queueUpdate(){clearTimeout(timer);timer=setTimeout(update,250);}
@@ -98,10 +89,28 @@ function onSave(event,descriptor){
   if(autoEnabled&&linkedID!==null)queueUpdate();
 }
 async function openViewer(){
-  try{await request('/open');if(linkedID===null)link();else queueUpdate();}
+  try{await request('/open',{documentName:app.documents.length?app.activeDocument.title:null});if(linkedID===null)link();else queueUpdate();}
   catch(error){setStatus('Relance OUVRIR_VIEWER.vbs pour ouvrir la grande fenêtre.');console.error(error);}
 }
-entrypoints.setup({commands:{texture3d:openViewer},plugin:{create(){},destroy(){
+let painterSending=false;
+async function sendToPainter(){
+  if(painterSending)return;
+  painterSending=true;
+  try{
+    if(!app.documents.length)throw Error('Ouvre le PSD préparé depuis Painter.');
+    const documentName=app.activeDocument.title;
+    const target=await(await request('/painter/target',{documentName})).json();
+    link(documentName);
+    const refreshRequest=bridgeSession+'-painter-'+Date.now();
+    const texture=await update(refreshRequest);
+    if(!texture)throw Error('La capture a échoué. Vérifie le document et réessaie.');
+    setStatus('Import de la peinture dans Painter…');
+    const result=await(await request('/painter/return',{documentName,projectID:target.projectID,refreshRequest,texture})).json();
+    setStatus(result.updated?'Texture actualisée dans Painter.':'Texture importée dans Painter.');
+  }catch(error){setStatus('Erreur : '+error.message);console.error(error);await core.executeAsModal(async()=>app.showAlert(error.message),{commandName:'Envoi vers Painter'});}
+  finally{painterSending=false;}
+}
+entrypoints.setup({commands:{texture3d:openViewer,sendToPainter},plugin:{create(){},destroy(){
   stopped=true;clearTimeout(bridgeTimer);clearTimeout(timer);clearInterval(saveMonitor);
   action.removeNotificationListener(['save'],onSave);
 }}});
@@ -123,7 +132,7 @@ const saveMonitor=setInterval(()=>{
 async function pollBridge(){
   try{
     const acknowledged=bridgeAck.slice();
-    const response=await request('/bridge',{session:bridgeSession,info:{document:documentLabel,status,auto:autoEnabled,busy},ack:acknowledged});
+    const response=await request('/bridge',{session:bridgeSession,info:{document:documentLabel,status,auto:autoEnabled,busy:busy||painterSending},ack:acknowledged,results:commandResults});
     bridgeAck=bridgeAck.filter(id=>!acknowledged.includes(id));
     if(!connected){connected=true;if(lastModel)await send(lastModel);if(lastTexture)await send(lastTexture);}
     const payload=await response.json();
@@ -149,7 +158,9 @@ async function processCommands(){
         if(command.type==='refresh')await update(command.id);
         if(command.type==='auto')autoEnabled=!!command.enabled;
         if(command.type==='importModel')await send({type:'model',bytes:command.bytes,name:command.name});
-      }catch(error){setStatus('Erreur : '+error.message);}
+        commandResults[command.id]={ok:true};
+      }catch(error){setStatus('Erreur : '+error.message);commandResults[command.id]={error:error.message};}
+      const oldResults=Object.keys(commandResults);for(const id of oldResults.slice(0,-20))delete commandResults[id];
       bridgeAck.push(command.id);
     }
   }finally{processingCommands=false;}

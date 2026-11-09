@@ -255,6 +255,7 @@ class TEXTURE3D_OT_confirm_selection(bpy.types.Operator):
         layout.operator_context = 'EXEC_DEFAULT'
         current = layout.operator('texture3d.paint_photoshop', text='Continuer avec la sélection')
         current.selection_confirmed = True
+        current.select_all_meshes = False
         all_meshes = layout.operator('texture3d.paint_photoshop', text='Tout sélectionner et continuer')
         all_meshes.selection_confirmed = True
         all_meshes.select_all_meshes = True
@@ -268,13 +269,13 @@ class TEXTURE3D_OT_paint(bpy.types.Operator):
     bl_label = 'Peindre dans Photoshop'
     bl_description = 'Préparer un PSD avec les UV et ouvrir le modèle dans Texture3D'
     selection_confirmed: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
-    select_all_meshes: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
+    select_all_meshes: BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
     @classmethod
     def poll(cls, context):
-        return not _running and context.mode == 'OBJECT' and any(o.type == 'MESH' for o in context.selected_objects)
+        return not _running and context.mode == 'OBJECT' and bool(selectable_meshes(context))
     def execute(self, context):
         global _running, _status
-        if not self.selection_confirmed and missing_meshes(context):
+        if not self.select_all_meshes and not self.selection_confirmed and missing_meshes(context):
             bpy.ops.texture3d.confirm_selection('INVOKE_DEFAULT')
             return {'CANCELLED'}
         if self.select_all_meshes:

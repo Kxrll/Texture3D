@@ -10,7 +10,7 @@ function png16(width,height){
 (async()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'texture3d-native-'));
  const config={port:19747,token:require('node:crypto').randomBytes(20).toString('hex')};
- fs.copyFileSync('companion.cjs',path.join(folder,'companion.cjs'));fs.writeFileSync(path.join(folder,'companion-config.json'),JSON.stringify(config));
+ for(const name of ['companion.cjs','painter-bridge.cjs'])fs.copyFileSync(name,path.join(folder,name));fs.writeFileSync(path.join(folder,'companion-config.json'),JSON.stringify(config));
  const request=(route,body)=>fetch('http://127.0.0.1:'+config.port+route,{method:body===undefined?'GET':'POST',headers:{'X-Texture3D-Key':config.token},body:body===undefined?undefined:JSON.stringify(body)});
  let child;
  async function start(){child=spawn(process.execPath,[path.join(folder,'companion.cjs')],{windowsHide:true,stdio:'ignore'});for(let i=0;i<40;i++){try{const r=await request('/info');if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('Test server did not start');}

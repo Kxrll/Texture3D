@@ -12,7 +12,7 @@ try {
         $textureName = if ($set.texture) { $set.texture } else { 'Couleur.png' }
         $uvName = if ($set.uv) { $set.uv } else { 'Reperes_UV.png' }
         $regions = if ($metadata.schema -eq 3) { $null } else { $metadata.material_regions }
-        $payload = @{psd=$psdPath;texture=(Join-Path $projectPath $textureName);uv=(Join-Path $projectPath $uvName);resume=[bool]$Resume;regions=$regions} | ConvertTo-Json -Depth 12 -Compress
+        $payload = @{psd=$psdPath;texture=(Join-Path $projectPath $textureName);uv=(Join-Path $projectPath $uvName);resume=[bool]$Resume;regions=$regions;painter=($metadata.source -eq 'painter')} | ConvertTo-Json -Depth 12 -Compress
         $script = $template.Replace('__PROJECT_JSON__', $payload)
         $photoshopApp.DoJavaScript($script)
     }

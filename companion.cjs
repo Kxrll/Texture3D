@@ -8,6 +8,7 @@ const viewerURL=base+'/viewer/index.html#token='+config.token;
 let revision=0,model=null,texture=null,modelVersion=0,textureVersion=0;
 let bridgeSeen=0,info={document:'Aucun document associé',status:'Ouvre le plugin dans Photoshop.',auto:true};
 let commandID=0,commands=[];
+let commandResults={};
 let targetBlender=null,returnID=0;
 const blenderClients=new Map(),returns=new Map();
 const instanceID=require('node:crypto').randomUUID();
@@ -22,6 +23,10 @@ function persistNow(){
   try{fs.writeFileSync(cachePath+'.tmp',JSON.stringify({version:1,model,texture,revision,modelVersion,textureVersion,currentProject,targetBlender}));fs.renameSync(cachePath+'.tmp',cachePath);}catch(error){console.error('Cache Texture3D : '+error.message);}
 }
 function persist(){clearTimeout(cacheTimer);cacheTimer=setTimeout(persistNow,300);}
+const painter=require('./painter-bridge.cjs')(__dirname,{readJSON,openViewer,queueCommand(command){const id=++commandID;commands.push({...command,id});return id;},getInfo(){return {...info,commandResults,online:Date.now()-bridgeSeen<(info.busy?30000:4000),instanceID};},queueDocument(documentName){
+  commands=commands.filter(c=>!['link','refresh'].includes(c.type));
+  commands.push({type:'link',documentName,id:++commandID},{type:'refresh',id:++commandID});
+}});
 function blenderOnline(){return !!targetBlender&&Date.now()-(blenderClients.get(targetBlender.session)||0)<6000;}
 async function readJSON(req){let length=0;const chunks=[];for await(const chunk of req){length+=chunk.length;if(length>256*1024*1024)throw Error('Fichier trop volumineux');chunks.push(chunk);}return JSON.parse(Buffer.concat(chunks).toString()||'{}');}
 function waitForReturn(destination,file){
@@ -32,10 +37,11 @@ function waitForReturn(destination,file){
     returns.set(id,{id,...file,...destination,finish(ack){clearTimeout(timer);ack.error?reject(Error(ack.error)):resolve(ack);}});
   });
 }
-function openViewer(){
+function openViewer(source='blender'){
   const edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(p=>fs.existsSync(p));
   if(!edge)throw Error('Microsoft Edge introuvable.');
-  const process=spawn(edge,['--app='+viewerURL,'--window-size=1100,800'],{detached:true,stdio:'ignore'});
+  const target=source==='painter'?base+'/viewer/index.html?source=painter#token='+config.token:viewerURL;
+  const process=spawn(edge,['--app='+target,'--window-size=1100,800'],{detached:true,stdio:'ignore'});
   process.on('error',()=>{});process.unref();
 }
 const files={
@@ -54,6 +60,7 @@ const server=http.createServer(async(req,res)=>{
   const origin=req.headers.origin;
   if(origin && origin!==base && origin!=='null'){res.writeHead(403);res.end();return;}
   try{
+    if(await painter.handle(req,res,url))return;
     if(req.method==='POST' && url.pathname==='/blender-bridge'){
       const body=await readJSON(req);
       if(typeof body.session!=='string'||body.session.length>100)throw Error('Session Blender invalide.');
@@ -70,6 +77,7 @@ const server=http.createServer(async(req,res)=>{
       if(!Array.isArray(project.bytes)||project.bytes.length>25*1024*1024||typeof project.documentName!=='string'||project.documentName.length>255)throw Error('Projet Blender invalide.');
       const buffer=Buffer.from(project.bytes);
       if(buffer.length<12||buffer.toString('ascii',0,4)!=='glTF'||buffer.readUInt32LE(8)!==buffer.length)throw Error('Modèle GLB invalide.');
+      painter.deactivate();
       const nextModel={type:'model',bytes:project.bytes,name:String(project.name||'Modele.glb')};
       model=nextModel;modelVersion=++revision;texture=null;textureVersion=++revision;
       targetBlender=typeof project.blenderSession==='string'&&typeof project.projectID==='string'?{session:project.blenderSession,projectID:project.projectID}:null;
@@ -121,13 +129,14 @@ const server=http.createServer(async(req,res)=>{
     }
     if(req.method==='POST' && url.pathname==='/bridge'){
       const body=await readJSON(req);bridgeSeen=Date.now();
+      if(body.results&&typeof body.results==='object'){commandResults={...commandResults,...body.results};for(const id of Object.keys(commandResults).slice(0,-40))delete commandResults[id];}
       const newSession=photoshopSession!==(body.session||'legacy');photoshopSession=body.session||'legacy';
       if(body.info)info={document:String(body.info.document||''),status:String(body.info.status||''),auto:!!body.info.auto,busy:!!body.info.busy};
       if(Array.isArray(body.ack)){
         if(currentProject&&commands.some(c=>c.type==='link'&&!c.documentName&&body.ack.includes(c.id))){currentProject.documentName=info.document.replace(/^Texture : /,'');persist();}
         commands=commands.filter(c=>!body.ack.includes(c.id));
       }
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({commands,desiredDocument:newSession?currentProject?.documentName:null}));return;
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({commands,desiredDocument:newSession?(painter.activeDocument||currentProject?.documentName):null}));return;
     }
     if(req.method==='POST' && url.pathname==='/command'){
       if(Date.now()-bridgeSeen>=4000){res.writeHead(503);res.end();return;}
@@ -139,18 +148,23 @@ const server=http.createServer(async(req,res)=>{
       const id=++commandID;commands.push({...command,id});res.end(JSON.stringify({id}));return;
     }
     if(req.method==='GET' && url.pathname==='/revision'){
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,textureVersion}));return;
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,textureVersion,commandResults}));return;
     }
     if(req.method==='GET' && url.pathname==='/state'){
       const after=Number(url.searchParams.get('after')??-1);
       if(after===revision){res.writeHead(204);res.end();return;}
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({instanceID,projectID:currentProject?.projectID,revision,modelVersion,textureVersion,textures:currentProject?.textures||{},model:after<modelVersion||after<0?model:undefined,texture:after<textureVersion||after<0?texture:undefined}));return;
     }
-    if(req.method==='POST' && url.pathname==='/open'){openViewer();res.end('{}');return;}
+    if(req.method==='POST' && url.pathname==='/open'){
+      const body=await readJSON(req);
+      openViewer(painter.ownsDocument(body.documentName)?'painter':'blender');res.end('{}');return;
+    }
     if(req.method==='POST' && url.pathname==='/state'){
       let length=0;const chunks=[];
       for await(const chunk of req){length+=chunk.length;if(length>256*1024*1024){res.writeHead(413);res.end();return;}chunks.push(chunk);}
       const message=JSON.parse(Buffer.concat(chunks).toString());
+      // Painter's PSD must never replace a Blender texture or its active document.
+      if(message.type==='texture'&&painter.ownsDocument(message.documentName)){painter.capture(message);res.end('{}');return;}
       if(message.type==='model' && Array.isArray(message.bytes)){model=message;modelVersion=++revision;}
       else if(message.type==='defaultModel'){model=null;modelVersion=++revision;}
       else if(message.type==='texture' && typeof message.url==='string' && /^data:image\/(png|jpeg);base64,/.test(message.url)){

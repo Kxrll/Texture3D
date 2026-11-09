@@ -9,10 +9,12 @@ New-Item -ItemType Directory -Path $app,$release -Force | Out-Null
 $node='C:\Program Files\nodejs\node.exe'
 & $node (Join-Path $root 'build.cjs')
 if($LASTEXITCODE -ne 0){throw 'Build du viewer impossible.'}
-$names=@('companion.cjs','OUVRIR_VIEWER.vbs','open-photoshop-project.ps1','prepare-photoshop-project.jsx','install-blender-addon.py','THREE-LICENSE.txt')
+$names=@('companion.cjs','painter-bridge.cjs','INSTALLER_PAINTER.ps1','OUVRIR_VIEWER.vbs','open-photoshop-project.ps1','prepare-photoshop-project.jsx','install-blender-addon.py','THREE-LICENSE.txt')
 foreach($name in $names){Copy-Item -LiteralPath (Join-Path $root $name) -Destination $app}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LISEZ-MOI-RELEASE.txt') -Destination (Join-Path $app 'LIRE_MOI.txt')
 foreach($folder in @('viewer','assets')){Copy-Item -LiteralPath (Join-Path $root $folder) -Destination $app -Recurse}
+New-Item -ItemType Directory -Path (Join-Path $app 'painter_plugin\texture3d_painter') -Force | Out-Null
+Copy-Item -Path (Join-Path $root 'painter_plugin\texture3d_painter\*.py') -Destination (Join-Path $app 'painter_plugin\texture3d_painter')
 New-Item -ItemType Directory -Path (Join-Path $app 'distribution'),(Join-Path $app 'runtime'),(Join-Path $app 'blender_addon\texture3d_blender') -Force | Out-Null
 # Build with a fresh distribution token; never embed the developer's configuration.
 $bytes=New-Object byte[] 32;$rng=[Security.Cryptography.RandomNumberGenerator]::Create();$rng.GetBytes($bytes);$rng.Dispose()

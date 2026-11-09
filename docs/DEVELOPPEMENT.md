@@ -17,6 +17,8 @@ La configuration locale est créée sans écraser celle qui existe. Ne pas la po
 
 ## Brancher les applications
 
+Le prototype **Painter ↔ Photoshop** possède son [guide d’installation et de test](PAINTER.md). Son plugin Painter est dans `painter_plugin/`, et ses échanges locaux dans `painter-bridge.cjs`.
+
 Fermer Blender, puis installer l’extension depuis les sources :
 
 ```powershell

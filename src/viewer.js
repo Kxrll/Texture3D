@@ -5,6 +5,19 @@ import cubeData from './cube-data.js';
 
 const tell = message => { if(window.uxpHost)window.uxpHost.postMessage(message); };
 const externalToken=new URLSearchParams(location.hash.slice(1)).get('token');
+const painterMode=new URLSearchParams(location.search).get('source')==='painter';
+function fetch(route,options){return window.fetch(painterMode?'/painter'+route:route,options);}
+// Older Photoshop commands open the generic viewer URL. Detect its current
+// Painter document before leaving the user with a disconnected Blender view.
+if(externalToken&&!new URLSearchParams(location.search).has('source')){
+  const auth={'X-Texture3D-Key':externalToken};
+  Promise.all(['/info','/painter/info'].map(route=>window.fetch(route,{headers:auth}).then(r=>r.json())))
+    .then(([host,painter])=>{
+      if(painter.activeDocument&&(host.document||'').replace(/^Texture : /,'')===painter.activeDocument){
+        const url=new URL(location.href);url.searchParams.set('source','painter');location.replace(url.href);
+      }
+    }).catch(()=>{});
+}
 if(window.uxpHost || !externalToken)document.body.classList.add('embedded');
 function fail(error){document.getElementById('error').textContent=error.message; tell({type:'error',message:error.message});}
 try {
@@ -112,6 +125,7 @@ try {
     textureCanvas.width=Math.max(1,Math.round(m.width*scale));
     textureCanvas.height=Math.max(1,Math.round(m.height*scale));
     const ctx=textureCanvas.getContext('2d');ctx.clearRect(0,0,textureCanvas.width,textureCanvas.height);
+    if(painterMode){ctx.fillStyle='#f1e7df';ctx.fillRect(0,0,textureCanvas.width,textureCanvas.height);}
     const b=m.bounds;ctx.drawImage(img,b.left*scale,b.top*scale,(b.right-b.left)*scale,(b.bottom-b.top)*scale);
     if(!texture){texture=new THREE.CanvasTexture(textureCanvas);texture.flipY=false;texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}
     texture.needsUpdate=true;
@@ -222,6 +236,7 @@ try {
     }
     setInterval(updateAge,1000);
     let exporting=false;
+    if(painterMode){const button=document.getElementById('blender');button.lastChild.textContent='Envoyer dans Painter';}
     document.getElementById('blender').addEventListener('click',async()=>{
       if(exporting)return;
       exporting=true;const button=document.getElementById('blender'),message=document.getElementById('export-status');button.disabled=true;
@@ -237,15 +252,18 @@ try {
         while(Date.now()<deadline){
           await new Promise(resolve=>setTimeout(resolve,300));
           const state=await (await fetch('/revision',{headers:auth})).json();
+          if(state.commandResults?.[refreshCommand.id]?.error)throw Error(state.commandResults[refreshCommand.id].error);
           if(state.textureVersion>initial.textureVersion){snapshot=await (await fetch('/state',{headers:auth})).json();if(snapshot.texture&&(!refreshCommand.id||snapshot.texture.refreshRequest===refreshCommand.id))break;snapshot=null;}
         }
         if(!snapshot)throw Error('La texture n’a pas été actualisée. Vérifie le document associé dans Photoshop.');
         await applyTexture({...snapshot.texture,seq:snapshot.textureVersion});
         if(!model||!texture)throw Error('Charge un modèle et une texture avant l’envoi.');
-        message.textContent='Envoi du PNG original dans Blender…';
-        const result=await fetch('/return-blender',{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify({projectID:snapshot.projectID,textureVersion:snapshot.textureVersion,setID:snapshot.texture?.setID})});
+        message.textContent=painterMode?'Envoi de la peinture dans Painter…':'Envoi du PNG original dans Blender…';
+        const payload=painterMode?{documentName:snapshot.texture.documentName,projectID:snapshot.projectID,texture:snapshot.texture,refreshRequest:String(snapshot.texture.refreshRequest)}:{projectID:snapshot.projectID,textureVersion:snapshot.textureVersion,setID:snapshot.texture?.setID};
+        if(painterMode)payload.texture={...snapshot.texture,refreshRequest:payload.refreshRequest};
+        const result=await fetch(painterMode?'/return':'/return-blender',{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify(payload)});
         const data=await result.json();if(!result.ok)throw Error(data.error||'Échec de l’export.');
-        message.textContent=data.count+' objet(s) mis à jour dans la scène Blender ouverte.';
+        message.textContent=painterMode?'Peinture importée dans Painter.':data.count+' objet(s) mis à jour dans la scène Blender ouverte.';
       }catch(e){message.textContent=e.message;}
       finally{exporting=false;button.disabled=false;}
     });
@@ -281,6 +299,7 @@ try {
         const signature=JSON.stringify(sets.map(s=>[s.document,s.name]));if(materialSelect.dataset.signature!==signature){materialSelect.replaceChildren(...sets.map(s=>{const option=document.createElement('option');option.value=s.document;option.textContent=s.name;return option;}));materialSelect.dataset.signature=signature;}materialSelect.value=info.activeDocument||'';materialSelect.disabled=!info.online;document.getElementById('associate').hidden=!!sets.length;document.querySelector('#associate + .caption').hidden=!!sets.length;document.querySelector('#associate + .caption').textContent=sets.length?'Choisis un matériau pour ouvrir son document dans Photoshop.':'Pour changer de texture, associe le document ouvert dans Photoshop.';document.querySelector('.export-section .caption').textContent=sets.length?'Ta peinture, sur les objets de la scène ouverte.':'Ta peinture, sur les objets de la scène ouverte.';
         document.getElementById('auto-external').checked=info.auto;
         document.getElementById('bridge-status').textContent=info.online?((/^(À jour|Texture à jour)/.test(info.status)?'Synchronisation active · Ctrl + S':info.status)+(info.blenderOnline?'':' · Blender déconnecté : ouvre la scène et reprends la peinture.')):'Photoshop déconnecté. Rouvre Photoshop ou utilise Reprendre la peinture dans Blender.';
+        if(painterMode)document.getElementById('bridge-status').textContent=info.online?(info.status+(info.painterOnline?'':' · Painter déconnecté : reprends le matériau.')):'Photoshop déconnecté. Ouvre le plugin Texture3D dans Photoshop.';
         const response=await fetch('/state?after='+revision,{headers:{'X-Texture3D-Key':externalToken},cache:'no-store'});
         if(response.status===200){
           const state=await response.json();

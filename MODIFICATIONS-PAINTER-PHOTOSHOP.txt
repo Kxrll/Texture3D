@@ -1,0 +1,96 @@
+TEXTURE3D - MODIFICATIONS PAINTER / PHOTOSHOP
+==========================================
+Date : 9 novembre 2026
+Base : sources Texture3D 0.8.0
+
+Ces changements concernent les sources de developpement. Ils ne remplacent pas
+automatiquement les executables deja publies dans la release 0.8.0.
+
+1. NOUVEAU PARCOURS SUBSTANCE 3D PAINTER -> PHOTOSHOP
+--------------------------------------------------
+- Ajout du plugin Python painter_plugin/texture3d_painter/.
+- Bouton "Peindre dans Photoshop" dans le panneau Painter.
+- Envoi de tous les objets et de tous les materiaux du projet dans un PSD commun.
+- Recuperation des UV reels via l'export du maillage Painter, sans nouveau
+  depliage ni compactage automatique.
+- Creation d'un calque Peinture transparent et d'un groupe Repere UV verrouille.
+- Fond blanc de travail et contours UV renforces pour faciliter la lecture.
+- Le fond et les reperes sont exclus automatiquement de la peinture exportee.
+- Reprise du PSD existant et conservation de la visibilite de ses calques.
+- Les anciens PSD par materiau restent conserves ; le modele complet utilise
+  une nouvelle association et un nouveau document commun.
+
+2. VIEWER 3D POUR PAINTER
+------------------------
+- Ouverture du viewer en meme temps que Photoshop depuis Painter.
+- Affichage du modele complet, converti en GLB autonome a partir de l'export OBJ.
+- Separation des etats Painter et Blender dans le service local.
+- Bouton "Envoyer dans Painter" dans le viewer en mode Painter.
+- Choix du bon mode lorsque le viewer est ouvert depuis le menu Photoshop.
+- Detection des anciennes ouvertures sans indication de mode.
+- Le fond clair de previsualisation ne modifie pas la transparence du PNG envoye.
+
+3. PHOTOSHOP -> PAINTER ET SYNCHRONISATION
+----------------------------------------
+- Nouvelle commande Photoshop "Envoyer la peinture dans Painter".
+- Import automatique comme ressource de type Texture dans le projet Painter.
+- Nom de ressource stable et actualisation de ses utilisations aux envois suivants.
+- Au premier import, l'artiste place la texture dans le calque et le canal voulus.
+- Attente de la capture fraiche et de la livraison de la texture avant le retour.
+- Confirmation de reception par la bonne session Painter.
+- Verification du projet destinataire, des materiaux, du PNG et de sa resolution.
+- Nettoyage du PNG temporaire apres le transfert.
+- Ctrl+S actualise le viewer. Un controle de modification du fichier PSD associe
+  complete les notifications Photoshop pour les sauvegardes qu'elles omettent.
+- Reconnexion depuis les metadonnees locales a la reouverture du projet Painter.
+- Rechargement des sous-modules Python lors d'un rechargement du plugin.
+- Transmission des erreurs de commandes pour eviter une attente sans explication.
+
+4. BLENDER -> PHOTOSHOP
+----------------------
+- Le bouton normal prend maintenant tous les maillages visibles et selectionnables,
+  meme si un seul objet est selectionne.
+- Conservation du document commun, des UV d'origine et des autres proprietes
+  des materiaux.
+- La commande explicite de poursuite avec la selection reste disponible pour
+  les appels utilisant ce mode.
+- Verification du chemin du cache avant son nettoyage a l'installation.
+
+5. INSTALLATION ET CONSTRUCTION
+------------------------------
+- INSTALLER_PAINTER.ps1 : copie du plugin dans le dossier choisi dans Painter,
+  avec sauvegarde d'une installation precedente et lien vers le dossier de l'outil.
+- build-painter-prototype.ps1 : preparation d'un CCX de test Photoshop avec
+  la configuration locale du service.
+- Adaptation du build de distribution pour inclure le pont et le plugin Painter.
+- docs/PAINTER.md : installation, utilisation, limites et verification.
+- docs/DEVELOPPEMENT.md : lien vers le nouveau parcours.
+
+6. VERIFICATIONS
+----------------
+- Reconstruction du viewer et controles de syntaxe JavaScript.
+- Tests HTTP du pont Painter : PNG, sessions, projets, dimensions, erreurs,
+  nettoyage et absence d'interference avec Blender.
+- Tests du plugin Photoshop : exclusion du guide, capture fraiche et refus
+  d'un document non associe, d'une capture echouee ou d'un transport interrompu.
+- Test du viewer dans Edge : modele, texture, routage et retour dans Painter.
+- Tests UV/PNG : filtrage, modele complet, orientation et transparence.
+- Test Blender : plusieurs objets envoyes avec un seul objet selectionne.
+- Tests de non-regression du guide UV, du retour Blender et de la reconnexion.
+- Essais reels effectues dans Photoshop et Painter sur un projet temporaire
+  a deux materiaux : Ctrl+S, sauvegarde scriptee, import depuis le menu Photoshop,
+  puis remplacement de la ressource utilisee par les deux materiaux.
+
+7. LIMITES ET FICHIERS LOCAUX
+----------------------------
+- UV dans le carre 0-1, sans workflow UDIM. Les UV superposes partagent la peinture.
+- Resolution maximale : 8192 pixels par cote ; modele du viewer : 25 Mo maximum.
+- Le retour dans Painter reste manuel. Ctrl+S ne declenche pas cet import.
+- Pas de conversion de la pile de calques, des generateurs ou des effets Painter.
+- Les cles locales, caches, journaux, dependances, projets personnels, PSD,
+  fichiers Blender et paquets de distribution ne sont pas ajoutes a Git.
+- Aucune nouvelle release ni nouvel installateur publie automatiquement.
+
+Pour reprendre sur un autre ordinateur, voir docs/DEVELOPPEMENT.md et
+docs/PAINTER.md. Regenerer la configuration locale et utiliser la meme
+configuration pour le plugin Photoshop et le service.

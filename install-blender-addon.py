@@ -16,6 +16,8 @@ for old in target.glob('*.py'):
         old.unlink()
 cache = target / '__pycache__'
 if cache.is_dir():
+    if not cache.resolve().is_relative_to(target.resolve()):
+        raise RuntimeError('Le cache de l’extension pointe en dehors du dossier d’installation.')
     shutil.rmtree(cache)
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / '__init__.py', target / '__init__.py')
 shutil.copy2(root / 'blender_addon' / 'texture3d_blender' / 'multi.py', target / 'multi.py')
