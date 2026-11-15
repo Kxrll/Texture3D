@@ -1,4 +1,4 @@
-"""The normal Blender button sends all visible meshes, even with one selected."""
+"""Selection is explicit; opting into all visible meshes still works."""
 import bpy
 from pathlib import Path
 import sys
@@ -26,11 +26,14 @@ try:
         tool.mkdir()
         addon.tool_folder=lambda context:tool
         addon.begin_launch=lambda context,folder,project,settings:launched.append(settings)
-        result=bpy.ops.texture3d.paint_photoshop()
+        assert bpy.ops.texture3d.paint_photoshop.get_rna_type().properties['select_all_meshes'].default is False
+        result=bpy.ops.texture3d.paint_photoshop(selection_confirmed=True, select_all_meshes=False)
+        assert result=={'FINISHED'} and launched[-1]['source_objects']==['Corps']
+        result=bpy.ops.texture3d.paint_photoshop(selection_confirmed=True, select_all_meshes=True)
         assert result=={'FINISHED'}, result
-        assert set(launched[0]['source_objects'])=={'Corps','Accessoire'}, launched
+        assert set(launched[-1]['source_objects'])=={'Corps','Accessoire'}, launched
         assert len(launched[0]['texture_sets'])==1
         assert len(bpy.data.objects)==2, 'Temporary export objects leaked'
-    print('PASS: Blender sends both visible objects to one PSD when only the body is selected.')
+    print('PASS: Selection-only and explicit all-visible modes preserve the requested scope.')
 finally:
     addon.unregister()

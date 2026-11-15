@@ -29,6 +29,8 @@ function png16(width,height){
   assert(job);assert.deepEqual(fs.readFileSync(job.image),png,'PNG must reach Blender byte-for-byte');
   await request('/blender-bridge',{session:'A',ack:[{id:job.id,count:2}]});
   assert.equal((await(await pending).json()).count,2);
+  assert(!fs.existsSync(job.image),'Transferred PNG must be removed');
+  assert.equal((await request('/return-blender',{projectID:state.projectID,textureVersion:state.textureVersion-1})).status,500);
   assert.equal((await request('/return-blender',{projectID:'wrong',textureVersion:1})).status,500);
   await new Promise(r=>setTimeout(r,500));const first=(await(await request('/info')).json()).instanceID;
   await stop();await start();

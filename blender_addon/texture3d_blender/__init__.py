@@ -269,7 +269,7 @@ class TEXTURE3D_OT_paint(bpy.types.Operator):
     bl_label = 'Peindre dans Photoshop'
     bl_description = 'Préparer un PSD avec les UV et ouvrir le modèle dans Texture3D'
     selection_confirmed: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
-    select_all_meshes: BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    select_all_meshes: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
     @classmethod
     def poll(cls, context):
         return not _running and context.mode == 'OBJECT' and bool(selectable_meshes(context))

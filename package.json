@@ -1,1 +1,17 @@
-{"name":"texture3d-photoshop","version":"0.1.0","private":true,"scripts":{"build":"node build.cjs","check":"node --check main.js && node --check src/viewer.js"},"dependencies":{"three":"0.180.0"},"devDependencies":{"esbuild":"0.25.10","playwright":"^1.56.1"}}
+{
+  "name": "texture3d-photoshop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.cjs",
+    "check": "node --check main.js && node --check src/viewer.js",
+    "test": "node test-guide-exclusion.cjs && node test-native-reconnect.cjs && node test-return-bridge.cjs && node test-painter-photoshop.cjs"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "playwright": "^1.56.1"
+  }
+}

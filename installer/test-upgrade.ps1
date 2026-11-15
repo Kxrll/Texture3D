@@ -36,3 +36,21 @@ $rejected=$false;try{Prepare-Application $new $old (Join-Path $root 'failed')}ca
 Assert $rejected 'Unsafe old manifest accepted'
 Assert ((Get-Content (Join-Path $old 'viewer.js') -Raw).Trim() -eq 'old code') 'Current installation modified before commit'
 Write-Output 'PASS: replacement, obsolete cleanup, personal files, session, matching tokens, repeat update, fresh install, traversal rejection, preparation failure.'
+
+# Retention removes only old packaged files, preserving personal files.
+$recovery=Join-Path $root 'recovery'
+1..4|ForEach-Object {
+ $dir=Join-Path $recovery ([string]$_)
+ $app=Join-Path $dir 'application'
+ New-Item -ItemType Directory -Path $app -Force|Out-Null
+ Set-Content (Join-Path $app 'runtime.exe') 'old runtime'
+ Set-Content (Join-Path $app 'personal.psd') 'keep'
+ @('runtime.exe','package-files.json')|ConvertTo-Json|Set-Content (Join-Path $app 'package-files.json')
+ Set-Content (Join-Path $dir 'completed.txt') 'ok'
+ (Get-Item $dir).LastWriteTime=[datetime]::Now.AddDays(-5+$_)
+}
+Trim-RecoveryPackages $recovery
+Assert (!(Test-Path (Join-Path $recovery '1\application\runtime.exe'))) 'Old binary retained'
+Assert (Test-Path (Join-Path $recovery '1\application\personal.psd')) 'Personal backup removed'
+Assert (Test-Path (Join-Path $recovery '2\application\runtime.exe')) 'Recent backup removed'
+Write-Output 'PASS: keep three recent package backups and preserve personal files in older backups.'

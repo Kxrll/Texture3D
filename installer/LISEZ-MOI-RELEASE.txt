@@ -1,8 +1,8 @@
-﻿TEXTURE3D STUDIO — VERSION 0.8.0
+﻿TEXTURE3D STUDIO — VERSION 0.8.1 BÊTA 1
 
 INSTALLER OU METTRE À JOUR
 1. Enregistre ton travail, puis ferme Blender et Photoshop.
-2. Lance Texture3D-Setup-0.8.0.exe.
+2. Lance Texture3D-Setup-0.8.1-beta.1.exe.
 3. Vérifie les logiciels détectés et clique sur Installer ou Mettre à jour.
 4. Ouvre Blender. Sélectionne ton modèle avec ses UV et ouvre Texture3D
    dans la barre latérale (touche N). Lance Peindre dans Photoshop.
@@ -23,7 +23,7 @@ sécurité du PC ou d'Adobe peuvent néanmoins empêcher l'installation.
 Le fichier n'est pas signé avec un certificat commercial.
 
 VERSION PORTABLE
-Extrais Texture3D-Portable-0.8.0.zip dans un dossier où tu peux écrire.
+Extrais Texture3D-Portable-0.8.1-beta.1.zip dans un dossier où tu peux écrire.
 Installe le CCX du sous-dossier distribution avec Creative Cloud, puis
 lance LANCER_BLENDER_PORTABLE.vbs. L'extension Blender est chargée pour
 cette session. Le plugin Photoshop nécessite toujours l'installation Adobe.

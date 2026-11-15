@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import cubeData from './cube-data.js';
+import { createObjectTools } from './object-tools.js';
 
 const tell = message => { if(window.uxpHost)window.uxpHost.postMessage(message); };
 const externalToken=new URLSearchParams(location.hash.slice(1)).get('token');
@@ -49,6 +50,7 @@ try {
     const distance=zoomGoal===null?camera.position.distanceTo(controls.target):zoomGoal;
     zoomGoal=THREE.MathUtils.clamp(distance*Math.exp(THREE.MathUtils.clamp(delta,-150,150)*0.0018),controls.minDistance,controls.maxDistance);
   },{capture:true,passive:false});
+  const objectTools=createObjectTools({renderer,camera,controls,scene,enabled:!painterMode});
   const loader=new GLTFLoader();
   let model=null,texture=null,latestSeq=0,modelSeq=0;
   const setTextures=new Map(),setSequences=new Map();
@@ -83,7 +85,7 @@ try {
   const textureCanvas=document.createElement('canvas');
   function frame(animate=false){
     if(!model)return;
-    const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3());
+    const box=new THREE.Box3();model.updateWorldMatrix(true,true);model.traverse(o=>{if(!o.isMesh)return;for(let p=o;p;p=p.parent)if(!p.visible)return;box.union(new THREE.Box3().setFromObject(o));});if(box.isEmpty())return;const center=box.getCenter(new THREE.Vector3());
     const radius=Math.max(box.getSize(new THREE.Vector3()).length()/2,0.001);
     const halfVertical=THREE.MathUtils.degToRad(camera.fov/2);
     const halfHorizontal=Math.atan(Math.tan(halfVertical)*camera.aspect);
@@ -103,10 +105,10 @@ try {
       candidate.traverse(o=>{if(o.isMesh){meshes++;if(!o.geometry.attributes.uv)missingUV=true;}});
       if(missingUV){disposeModel(candidate);fail(new Error('Le modèle ne contient pas de coordonnées UV.'));return;}
       if(!meshes){fail(new Error('Aucun maillage dans ce GLB.'));return;}
-      if(model){scene.remove(model);disposeModel(model);}
+      if(model){objectTools.clear();scene.remove(model);disposeModel(model);}
       model=candidate;
       model.traverse(o=>{if(o.isMesh){const old=[].concat(o.material)[0];o.userData.textureSet=old.userData.texture3d_set||(old.name.startsWith('Texture3D_set_')?old.name.slice('Texture3D_'.length):null);const map=o.userData.textureSet?setTextures.get(o.userData.textureSet):texture;const color=old.color?.clone()||new THREE.Color(0xc9cbd0);for(const m of [].concat(o.material))m.dispose();o.material=new THREE.MeshBasicMaterial({map:map||null,color:map?0xffffff:color,side:THREE.DoubleSide});}});
-      updateWireframe();scene.add(model);frame();document.getElementById('error').textContent='';tell({type:'ready'});
+      updateWireframe();scene.add(model);objectTools.setModel(model);frame();document.getElementById('error').textContent='';tell({type:'ready'});
     },fail);
   }
   async function applyTexture(m){
@@ -115,7 +117,7 @@ try {
       let map=setTextures.get(key);if(map&&map.userData.source===m.url)return;
       const canvas=document.createElement('canvas');const scale=Math.min(1,renderer.capabilities.maxTextureSize/Math.max(m.width,m.height));canvas.width=Math.round(m.width*scale);canvas.height=Math.round(m.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
       const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=THREE.SRGBColorSpace;next.userData.source=m.url;setTextures.set(key,next);texture=next;
-      if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===key){o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}});if(map)map.dispose();return;
+      if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===key){o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}});if(map)map.dispose();objectTools.textureChanged(m);return;
     }
     latestSeq=m.seq;
     const img=new Image();img.src=m.url;
@@ -130,6 +132,7 @@ try {
     if(!texture){texture=new THREE.CanvasTexture(textureCanvas);texture.flipY=false;texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}
     texture.needsUpdate=true;
     if(model)model.traverse(o=>{if(o.isMesh){o.material.map=texture;o.material.color.set(0xffffff);o.material.needsUpdate=true;}});
+    objectTools.textureChanged(m);
     tell({type:'applied',seq:m.seq});
   }
   window.addEventListener('message',event=>{

@@ -48,12 +48,21 @@ try{
  $env:T3D_FAIL=''
  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $case 'setup.ps1') -Mode Install
  Assert ($LASTEXITCODE -eq 0) 'Upgrade failed'
- Assert ((Get-Content (Join-Path $target 'installation.json') -Raw|ConvertFrom-Json).version -eq '0.8.0') 'Installed version not recorded'
+ Assert ((Get-Content (Join-Path $target 'installation.json') -Raw|ConvertFrom-Json).version -eq '0.8.1') 'Installed version not recorded'
  Assert (!(Test-Path (Join-Path $addon 'obsolete.py'))) 'Obsolete addon retained'
  Assert ((Get-Content (Join-Path $target 'personal.psd') -Raw).Trim() -eq 'paint preserved') 'Project lost'
  Assert ((Get-Content (Join-Path $target 'companion-config.json') -Raw) -eq $configBefore) 'Token changed'
- Assert ((Get-ItemProperty $reg).DisplayVersion -eq '0.8.0') 'Registry version wrong'
+ Assert ((Get-ItemProperty $reg).DisplayVersion -eq '0.8.1') 'Registry version wrong'
  Assert (Test-Path (Join-Path $menu 'Texture3D.lnk')) 'Shortcut missing'
+ New-ItemProperty -Path $reg -Name DisplayVersion -Value 'previous-version' -Force|Out-Null
+ $shortcutHash=(Get-FileHash (Join-Path $menu 'Texture3D.lnk')).Hash
+ $lateFailure=$script.Replace(" # Keep a recovery copy, outside the app. It is not registered or launched."," throw 'Injected finalization failure'")
+ Set-Content (Join-Path $case 'setup.ps1') $lateFailure -Encoding UTF8
+ & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $case 'setup.ps1') -Mode Install
+ Assert ($LASTEXITCODE -eq 1) 'Late failure not propagated'
+ Assert ((Get-ItemProperty $reg).DisplayVersion -eq 'previous-version') 'Registry rollback failed'
+ Assert ((Get-FileHash (Join-Path $menu 'Texture3D.lnk')).Hash -eq $shortcutHash) 'Shortcut rollback failed'
+ Set-Content (Join-Path $case 'setup.ps1') $script -Encoding UTF8
  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $case 'setup.ps1') -Mode Install
  Assert ($LASTEXITCODE -eq 0) 'Reinstall failed'
  Assert (@(Get-ChildItem -LiteralPath (Split-Path $target) -Directory).Count -eq 1) 'Duplicate application directory'

@@ -19,6 +19,10 @@ original={o.name:([(uv.name,[tuple(i.uv) for i in uv.data]) for uv in o.data.uv_
 with tempfile.TemporaryDirectory() as tmp:
  folder=Path(tmp)/'Tool';folder.mkdir()
  project,settings=addon.prepare_project(bpy.context,folder,128)
+ raw=(project/'Modele.glb').read_bytes()
+ gltf=json.loads(raw[20:20+int.from_bytes(raw[12:16],'little')])
+ source_names=[node.get('extras',{}).get('texture3d_source_name') for node in gltf['nodes']]
+ assert source_names.count(a.name)==2 and source_names.count(b.name)==1, 'Material pieces lost their source object identity'
  for obj in [a,b]:
   assert original[obj.name][0]==[(uv.name,[tuple(i.uv) for i in uv.data]) for uv in obj.data.uv_layers], 'UV layer added during Photoshop preparation'
  assert settings['schema']==3 and len(settings['texture_sets'])==1

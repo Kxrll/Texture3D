@@ -24,12 +24,15 @@ function Detect {
  $upia=Join-Path $env:CommonProgramFiles 'Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe'
  $psReady=Test-Path 'Registry::HKEY_CLASSES_ROOT\Photoshop.Application'
  $version=(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture3D' -ErrorAction SilentlyContinue).DisplayVersion
- return @{blenders=@($found|ForEach-Object {$_.FullName});photoshop=$psReady;adobe=(Test-Path -LiteralPath $upia);upia=$upia;installed=(Test-Path -LiteralPath $target);previousVersion=$version;target=$target;version='0.8.0';running=@(Get-Process blender,Photoshop -ErrorAction SilentlyContinue|Select-Object -ExpandProperty ProcessName -Unique)}
+ return @{blenders=@($found|ForEach-Object {$_.FullName});photoshop=$psReady;adobe=(Test-Path -LiteralPath $upia);upia=$upia;installed=(Test-Path -LiteralPath $target);previousVersion=$version;target=$target;version='0.8.1';running=@(Get-Process blender,Photoshop -ErrorAction SilentlyContinue|Select-Object -ExpandProperty ProcessName -Unique)}
 }
 if($Mode -eq 'Inspect'){try{Detect|ConvertTo-Json -Compress -Depth 4;exit 0}catch{Write-Output $_.Exception.Message;exit 1}}
 $stage=$target+'.staging-'+[guid]::NewGuid().ToString('N')
 $recovery=Join-Path $env:LOCALAPPDATA ('Texture3D\Recovery\'+[guid]::NewGuid().ToString('N'))
 $backup=Join-Path $recovery 'application'
+$registrationStarted=$false
+$registryPath='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture3D'
+$shortcutPath=Join-Path ([Environment]::GetFolderPath('Programs')) 'Texture3D.lnk'
 $addonBackups=@();$swapped=$false;$adobeAttempted=$false;$hadPrevious=$false
 try{
  Start-Transcript -Path $log -Force | Out-Null
@@ -83,19 +86,38 @@ try{
   & $exe --background --python-exit-code 1 --python (Join-Path $target 'install-blender-addon.py') 2>&1 | ForEach-Object { Write-Output "$_" }
   if($LASTEXITCODE -ne 0){throw "L'extension Blender n'a pas pu être installée : $exe"}
  }
+ $registryExisted=Test-Path -LiteralPath $registryPath
+ if($registryExisted){Get-ItemProperty -LiteralPath $registryPath|Export-Clixml (Join-Path $recovery 'registration.xml')}
+ $shortcutExisted=Test-Path -LiteralPath $shortcutPath
+ if($shortcutExisted){Copy-Item -LiteralPath $shortcutPath -Destination (Join-Path $recovery 'shortcut.lnk')}
+ $registrationStarted=$true
  Progress 90 'Finalisation des raccourcis'
- @{version='0.8.0';blender=$blender;blenders=$info.blenders;directory=$target}|ConvertTo-Json|Set-Content (Join-Path $target 'installation.json') -Encoding UTF8
+ @{version='0.8.1';blender=$blender;blenders=$info.blenders;directory=$target}|ConvertTo-Json|Set-Content (Join-Path $target 'installation.json') -Encoding UTF8
  $shell=New-Object -ComObject WScript.Shell
  $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Texture3D.lnk'))
  $shortcut.TargetPath=Join-Path $env:WINDIR 'System32\wscript.exe';$shortcut.Arguments='"'+(Join-Path $target 'OUVRIR_VIEWER.vbs')+'"';$shortcut.WorkingDirectory=$target;$shortcut.IconLocation=(Join-Path $target 'assets\texture3d.ico')+',0';$shortcut.Save()
  $reg='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture3D'
  New-Item -Path $reg -Force|Out-Null
- (@{DisplayName='Texture3D Studio';DisplayVersion='0.8.0';DisplayIcon=(Join-Path $target 'assets\texture3d.ico');InstallLocation=$target;UninstallString=('powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "'+$target+'\uninstall.ps1"')}).GetEnumerator() | ForEach-Object {New-ItemProperty -Path $reg -Name $_.Key -Value $_.Value -Force|Out-Null}
+ (@{DisplayName='Texture3D Studio';DisplayVersion='0.8.1';DisplayIcon=(Join-Path $target 'assets\texture3d.ico');InstallLocation=$target;UninstallString=('powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "'+$target+'\uninstall.ps1"')}).GetEnumerator() | ForEach-Object {New-ItemProperty -Path $reg -Name $_.Key -Value $_.Value -Force|Out-Null}
  # Keep a recovery copy, outside the app. It is not registered or launched.
  if($hadPrevious){Progress 98 ('Sauvegarde conservée : '+$backup)}
+ Set-Content (Join-Path $recovery 'completed.txt') 'ok'
+ try{Trim-RecoveryPackages (Split-Path $recovery -Parent)}catch{Write-Output ('Nettoyage différé : '+$_.Exception.Message)}
  Progress 100 'Texture3D est prêt. Retrouve-le dans la barre latérale de Blender.'
 }catch{
  $reason=$_.Exception.Message
+ if($registrationStarted){
+  try{
+   if($registryExisted){
+    $prior=Import-Clixml (Join-Path $recovery 'registration.xml')
+    $key=Get-Item -LiteralPath $registryPath
+    foreach($name in $key.GetValueNames()){Remove-ItemProperty -LiteralPath $registryPath -Name $name}
+    foreach($property in $prior.PSObject.Properties){if($property.Name -notmatch '^PS'){New-ItemProperty -LiteralPath $registryPath -Name $property.Name -Value $property.Value -Force|Out-Null}}
+   }elseif(Test-Path -LiteralPath $registryPath){Remove-Item -LiteralPath $registryPath -Force}
+   if($shortcutExisted){Copy-Item -LiteralPath (Join-Path $recovery 'shortcut.lnk') -Destination $shortcutPath -Force}
+   elseif(Test-Path -LiteralPath $shortcutPath){Remove-Item -LiteralPath $shortcutPath -Force}
+  }catch{$reason+=' Restauration des raccourcis incomplète : '+$_.Exception.Message}
+ }
  if($swapped){
   Progress 92 'Restauration de la version précédente'
   try{

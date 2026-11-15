@@ -1,8 +1,8 @@
 ﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root=Split-Path $PSScriptRoot -Parent
-$version='0.8.0'
-$release=Join-Path $root "distribution\Texture3D-$version"
+$version='0.8.1'
+$release=Join-Path $root "distribution\Texture3D-$version-beta.1"
 $stage=Join-Path $env:TEMP ('Texture3D-build-'+[guid]::NewGuid().ToString('N'))
 $app=Join-Path $stage 'app'
 New-Item -ItemType Directory -Path $app,$release -Force | Out-Null
@@ -44,18 +44,18 @@ New-Item -ItemType Directory -Path $payloadStage|Out-Null
 foreach($name in @('app','setup.ps1','files.ps1','package-files.json')){Copy-Item -LiteralPath (Join-Path $stage $name) -Destination $payloadStage -Recurse}
 $payload=$payloadStage+'.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($payloadStage,$payload)
-$output=Join-Path $release "Texture3D-Setup-$version.exe"
+$output=Join-Path $release "Texture3D-Setup-$version-beta.1.exe"
 & 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe' /nologo /target:winexe /platform:x64 ('/win32manifest:'+(Join-Path $PSScriptRoot 'app.manifest')) ('/win32icon:'+(Join-Path $root 'assets\texture3d.ico')) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll ('/resource:'+$payload+',payload.zip') ('/out:'+$output) (Join-Path $PSScriptRoot 'Setup.cs')
 if($LASTEXITCODE -ne 0){throw 'Compilation échouée'}
 $portable=Join-Path $stage 'Texture3D portable'
 Copy-Item -LiteralPath $app -Destination $portable -Recurse
 Copy-Item -Path (Join-Path $PSScriptRoot 'portable\*') -Destination $portable
 Copy-Item -LiteralPath (Join-Path $root 'INSTALLER_PHOTOSHOP.ps1') -Destination $portable
-$portableZip=Join-Path $release "Texture3D-Portable-$version.zip"
+$portableZip=Join-Path $release "Texture3D-Portable-$version-beta.1.zip"
 if(Test-Path -LiteralPath $portableZip){Remove-Item -LiteralPath $portableZip}
 [IO.Compression.ZipFile]::CreateFromDirectory($portable,$portableZip)
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LISEZ-MOI-RELEASE.txt') -Destination $release
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'NOTES-0.8.0.md') -Destination $release
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'NOTES-0.8.1.md') -Destination $release
 $hashes=Get-FileHash -LiteralPath $output,$portableZip -Algorithm SHA256|ForEach-Object {$_.Hash.ToLower()+'  '+[IO.Path]::GetFileName($_.Path)}
 $hashes|Set-Content (Join-Path $release 'SHA256SUMS.txt') -Encoding ASCII
 Write-Output "RELEASE=$release"

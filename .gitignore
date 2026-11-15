@@ -24,3 +24,4 @@ blender_addon/**/tool-location.json
 painter_plugin/**/tool-location.json
 installer/backup-addon-*/
 installer/prepare-clean-test.py
+.session-assets/

@@ -13,6 +13,17 @@ const queuedCommands=[],seenCommands=new Set();
 let processingCommands=false;
 let transfer=Promise.resolve();
 const commandResults={};
+const guideIDs=new Map();
+function documentGuides(doc){
+  const all=[];function walk(layers){for(const layer of layers){all.push(layer);if(layer.layers)walk(layer.layers);}}walk(doc.layers);
+  const key=String(doc.path||doc.title);
+  let ids=guideIDs.get(key);
+  if(!ids&&typeof localStorage!=='undefined'){try{ids=JSON.parse(localStorage.getItem('texture3d-guides:'+key));}catch(_){}}
+  let guides=ids?all.filter(l=>ids.includes(l.id)):[];
+  if(ids&&guides.length!==ids.length)throw Error('Le repère UV associé est introuvable. Reprends le projet avant l’export.');
+  if(!ids){guides=all.filter(l=>l.name==='Repère UV');const known=guides.map(l=>l.id).filter(id=>id!==undefined);if(known.length){guideIDs.set(key,known);if(typeof localStorage!=='undefined')try{localStorage.setItem('texture3d-guides:'+key,JSON.stringify(known));}catch(_){}}}
+  return guides.filter(l=>l.visible);
+}
 const setStatus=text=>{status=text;};
 
 async function request(route,body){
@@ -48,9 +59,7 @@ async function update(refreshRequest=null){
     tempFile=await temporary.createFile('texture-'+doc.id+'-'+Date.now()+'.png',{overwrite:true});
     capturingPNG=true;
     const capture=await core.executeAsModal(async executionContext=>{
-      const guides=[];
-      function findGuides(layers){for(const layer of layers){if(layer.name==='Repère UV'&&layer.visible)guides.push(layer);if(layer.layers)findGuides(layer.layers);}}
-      findGuides(doc.layers);
+      const guides=documentGuides(doc);
       let suspension=null;
       try{
         if(guides.length){
@@ -76,9 +85,14 @@ async function update(refreshRequest=null){
   finally{capturingPNG=false;if(tempFile)try{await tempFile.delete();}catch(_){}wasSaved=doc.saved;busy=false;if(pending){pending=false;queueUpdate();}}
 }
 function queueUpdate(){clearTimeout(timer);timer=setTimeout(update,250);}
+function resolveDocument(documentName){
+  const matches=Array.from(app.documents).filter(d=>d.title===documentName);
+  if(matches.length>1)throw Error('Plusieurs PSD portent le nom '+documentName+'. Ferme ou renomme la copie avant de continuer.');
+  return matches[0];
+}
 function link(documentName){
   if(!app.documents.length){setStatus('Ouvre d’abord ta texture dans Photoshop.');return;}
-  const doc=typeof documentName==='string'?(app.activeDocument.title===documentName?app.activeDocument:Array.from(app.documents).find(d=>d.title===documentName)):app.activeDocument;
+  const doc=typeof documentName==='string'?resolveDocument(documentName):app.activeDocument;
   if(!doc)throw Error('Le PSD du projet est introuvable : '+documentName);
   linkedID=doc.id;wasSaved=doc.saved;documentLabel='Texture : '+doc.title;queueUpdate();
   desiredDocument=doc.title;
@@ -138,7 +152,7 @@ async function pollBridge(){
     const payload=await response.json();
     if(payload.desiredDocument)desiredDocument=payload.desiredDocument;
     if(desiredDocument){
-      const doc=Array.from(app.documents).find(d=>d.title===desiredDocument);
+      const doc=resolveDocument(desiredDocument);
       if(doc&&doc.id!==linkedID)link(desiredDocument);
       else if(!doc){linkedID=null;documentLabel='Texture : '+desiredDocument;setStatus('Rouvre '+desiredDocument+' dans Photoshop pour reconnecter le projet.');}
     }
@@ -154,7 +168,7 @@ async function processCommands(){
     while(queuedCommands.length&&!stopped){
       const command=queuedCommands.shift();
       try{
-        if(command.type==='link'){await core.executeAsModal(async()=>{const doc=Array.from(app.documents).find(d=>d.title===command.documentName);if(doc)app.activeDocument=doc;},{commandName:'Choisir le matériau'});link(command.documentName);}
+        if(command.type==='link'){await core.executeAsModal(async()=>{const doc=resolveDocument(command.documentName);if(doc)app.activeDocument=doc;},{commandName:'Choisir le matériau'});link(command.documentName);}
         if(command.type==='refresh')await update(command.id);
         if(command.type==='auto')autoEnabled=!!command.enabled;
         if(command.type==='importModel')await send({type:'model',bytes:command.bytes,name:command.name});

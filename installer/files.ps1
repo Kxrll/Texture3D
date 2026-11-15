@@ -1,4 +1,20 @@
 ﻿# File operations shared by the installer and its isolated upgrade tests.
+function Trim-RecoveryPackages([string]$RecoveryRoot) {
+ $base=[IO.Path]::GetFullPath($RecoveryRoot).TrimEnd('\')+'\'
+ $completed=@(Get-ChildItem -LiteralPath $RecoveryRoot -Directory -ErrorAction SilentlyContinue | Where-Object {Test-Path -LiteralPath (Join-Path $_.FullName 'completed.txt')} | Sort-Object LastWriteTime -Descending)
+ foreach($entry in @($completed | Select-Object -Skip 3)){
+  $app=Join-Path $entry.FullName 'application'
+  $manifest=Join-Path $app 'package-files.json'
+  if(!(Test-Path -LiteralPath $manifest)){continue}
+  $files=Get-Content -LiteralPath $manifest -Raw|ConvertFrom-Json
+  foreach($relative in $files){
+   if($relative -eq 'companion-config.json'){continue}
+   $file=Resolve-OwnedPath $app $relative
+   if(!$file.StartsWith($base,[StringComparison]::OrdinalIgnoreCase)){throw 'Sauvegarde hors du dossier de récupération.'}
+   if(Test-Path -LiteralPath $file -PathType Leaf){Remove-Item -LiteralPath $file -Force}
+  }
+ }
+}
 function Resolve-OwnedPath([string]$Root,[string]$Relative) {
  $base=[IO.Path]::GetFullPath($Root).TrimEnd('\')+'\'
  $path=[IO.Path]::GetFullPath((Join-Path $Root $Relative))

@@ -14,13 +14,40 @@ const blenderClients=new Map(),returns=new Map();
 const instanceID=require('node:crypto').randomUUID();
 let currentProject=null,photoshopSession=null,cacheTimer=null;
 const cachePath=path.join(__dirname,'.session-state.json');
+const assetCache=path.join(__dirname,'.session-assets');
+function restoreAsset(key,value){
+  if(!value||typeof value!=='object'||!value.texture3dAsset)return value;
+  if(!/^[a-f0-9]{64}\.(png|glb)$/.test(value.texture3dAsset))throw Error('Cache invalide');
+  const data=fs.readFileSync(path.join(assetCache,value.texture3dAsset));
+  return key==='bytes'?[...data]:'data:image/png;base64,'+data.toString('base64');
+}
+const transferCache=path.join(__dirname,'cache-textures');
+if(fs.existsSync(transferCache))for(const name of fs.readdirSync(transferCache)){
+  if(!/^[a-f0-9]{24}-[0-9]+-[a-f0-9]{8}\.png(?:\.tmp)?$/.test(name))continue;
+  const file=path.join(transferCache,name);
+  try{if(Date.now()-fs.statSync(file).mtimeMs>86400000)fs.rmSync(file);}catch(_){}
+}
 try{
-  const saved=JSON.parse(fs.readFileSync(cachePath,'utf8'));
-  if(saved.version===1){({model,texture,revision,modelVersion,textureVersion,currentProject,targetBlender}=saved);}
+  const saved=JSON.parse(fs.readFileSync(cachePath,'utf8'),restoreAsset);
+  if(saved.version===1||saved.version===2){({model,texture,revision,modelVersion,textureVersion,currentProject,targetBlender}=saved);}
 }catch(_){/* First launch or an incomplete cache: reconnect from Blender. */}
 commandID=Date.now()*1000;returnID=commandID;
 function persistNow(){
-  try{fs.writeFileSync(cachePath+'.tmp',JSON.stringify({version:1,model,texture,revision,modelVersion,textureVersion,currentProject,targetBlender}));fs.renameSync(cachePath+'.tmp',cachePath);}catch(error){console.error('Cache Texture3D : '+error.message);}
+  try{
+    fs.mkdirSync(assetCache,{recursive:true});const used=new Set();
+    function binary(key,value){
+      let data,ext;
+      if(key==='bytes'&&Array.isArray(value)){data=Buffer.from(value);ext='glb';}
+      else if(key==='url'&&typeof value==='string'&&value.startsWith('data:image/png;base64,')){data=Buffer.from(value.slice(22),'base64');ext='png';}
+      else return value;
+      const name=require('node:crypto').createHash('sha256').update(data).digest('hex')+'.'+ext;
+      used.add(name);const file=path.join(assetCache,name);if(!fs.existsSync(file))fs.writeFileSync(file,data);
+      return {texture3dAsset:name};
+    }
+    fs.writeFileSync(cachePath+'.tmp',JSON.stringify({version:2,model,texture,revision,modelVersion,textureVersion,currentProject,targetBlender},binary));
+    fs.renameSync(cachePath+'.tmp',cachePath);
+    for(const name of fs.readdirSync(assetCache))if(/^[a-f0-9]{64}\.(png|glb)$/.test(name)&&!used.has(name))fs.rmSync(path.join(assetCache,name));
+  }catch(error){console.error('Cache Texture3D : '+error.message);}
 }
 function persist(){clearTimeout(cacheTimer);cacheTimer=setTimeout(persistNow,300);}
 const painter=require('./painter-bridge.cjs')(__dirname,{readJSON,openViewer,queueCommand(command){const id=++commandID;commands.push({...command,id});return id;},getInfo(){return {...info,commandResults,online:Date.now()-bridgeSeen<(info.busy?30000:4000),instanceID};},queueDocument(documentName){
@@ -95,7 +122,7 @@ const server=http.createServer(async(req,res)=>{
       if(!blenderOnline())throw Error('Blender est déconnecté. Ouvre la scène et utilise Reprendre la peinture.');
       if(body.projectID!==targetBlender.projectID)throw Error('Le projet a changé pendant le transfert. Réessaie depuis la bonne scène.');
       if(!texture||!texture.url.startsWith('data:image/png;base64,'))throw Error('Actualise Photoshop avec le plugin Texture3D 0.6 pour envoyer le PNG original.');
-      if(body.textureVersion>textureVersion)throw Error('La nouvelle texture n’est pas encore disponible. Réessaie.');
+      if(!Number.isSafeInteger(body.textureVersion)||body.textureVersion!==textureVersion)throw Error('La nouvelle texture n’est pas encore disponible. Réessaie.');
       if([...returns.values()].some(j=>j.projectID===targetBlender.projectID))throw Error('Un transfert vers Blender est déjà en cours.');
       const sourceTexture=texture,destination={...targetBlender};
       if(currentProject?.textureSets?.length && (!sourceTexture.setID || body.setID!==sourceTexture.setID || sourceTexture.documentName!==currentProject.documentName))throw Error('Le matériau a changé. Attends la mise à jour puis réessaie.');
@@ -103,7 +130,9 @@ const server=http.createServer(async(req,res)=>{
       const file=path.join(folder,require('node:crypto').createHash('sha256').update(targetBlender.projectID+':'+(sourceTexture.setID||'')).digest('hex').slice(0,24)+'-'+textureVersion+'-'+require('node:crypto').randomBytes(4).toString('hex')+'.png');
       const bytes=Buffer.from(sourceTexture.url.slice(sourceTexture.url.indexOf(',')+1),'base64');
       fs.writeFileSync(file+'.tmp',bytes);fs.renameSync(file+'.tmp',file);
-      const result=await waitForReturn(destination,{image:file,setID:sourceTexture.setID});
+      let result;
+      try{result=await waitForReturn(destination,{image:file,setID:sourceTexture.setID});}
+      finally{try{fs.rmSync(file,{force:true});}catch(error){console.error('Nettoyage du transfert : '+error.message);}}
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({count:result.count,updatedExisting:true,width:sourceTexture.width,height:sourceTexture.height,bitDepth:sourceTexture.bitDepth}));return;
     }
     if(req.method==='POST' && url.pathname==='/export-blender'){
