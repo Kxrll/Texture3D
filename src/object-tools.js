@@ -117,7 +117,7 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
     const uv=textureUV(hit.uv,map),px=x+uv.x*rw,py=y+uv.y*rh;
     ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);ctx.fillStyle='#873d58';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
     ctx.beginPath();ctx.moveTo(px-12,py);ctx.lineTo(px+12,py);ctx.moveTo(px,py-12);ctx.lineTo(px,py+12);ctx.strokeStyle='#873d58';ctx.lineWidth=1;ctx.stroke();
-    const size=dimensions.get(mesh.userData.textureSet)||dimensions.get('default')||{width:iw,height:ih};
+    const size=map?.userData?.nativeSize||dimensions.get(mesh.userData.textureSet)||dimensions.get('default')||{width:iw,height:ih};
     const pixelX=Math.min(size.width-1,Math.max(0,Math.floor(uv.x*size.width))),pixelY=Math.min(size.height-1,Math.max(0,Math.floor(uv.y*size.height)));
     caption.textContent=selected.name+' · '+(img?`X ${pixelX} · Y ${pixelY} px`:'Texture indisponible');
     canvas.dataset.u=String(uv.x);canvas.dataset.v=String(uv.y);canvas.dataset.pixelX=String(pixelX);canvas.dataset.pixelY=String(pixelY);

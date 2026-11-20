@@ -47,6 +47,32 @@ const {spawn}=require('node:child_process');
   for(let i=0;i<40&&!job;i++){await new Promise(r=>setTimeout(r,25));job=(await(await request('/painter/bridge',{session:binding.session})).json()).jobs[0];}
   await request('/painter/bridge',{session:binding.session,ack:[{id:job.id,projectID:job.projectID,error:'Projet fermé'}]});
   assert.equal((await pending).status,500);assert(!fs.existsSync(job.image));
+  assert.equal((await request('/painter/sync',{documentName:binding.documentName,projectID:'wrong',enabled:true})).status,500);
+  await request('/painter/sync',{documentName:binding.documentName,projectID:binding.projectID,enabled:true});
+  const autoPng=Buffer.from(png);autoPng[24]=16;const autoTexture={...texture,url:'data:image/png;base64,'+autoPng.toString('base64')};
+  for(let seq=1;seq<=10;seq++)await request('/state',{...autoTexture,refreshRequest:null,seq});
+  let autoJob;
+  for(let i=0;i<50&&!autoJob;i++){await new Promise(r=>setTimeout(r,25));autoJob=(await(await request('/painter/bridge',{session:binding.session})).json()).jobs[0];}
+  assert(autoJob,'Opt-in captures should enqueue an automatic transfer');
+  assert.equal(autoJob.sha256,require('node:crypto').createHash('sha256').update(autoPng).digest('hex'));
+  await request('/painter/bridge',{session:binding.session,ack:[{id:autoJob.id,projectID:autoJob.projectID}]});
+  await request('/state',{...autoTexture,refreshRequest:null,seq:11});await new Promise(r=>setTimeout(r,700));
+  assert.equal((await(await request('/painter/bridge',{session:binding.session})).json()).jobs.length,0,'Identical content must not be imported again');
+  await request('/painter/sync',{documentName:binding.documentName,projectID:binding.projectID,enabled:false});
+  await request('/state',{...autoTexture,refreshRequest:null,seq:12});await new Promise(r=>setTimeout(r,600));
+  assert.equal((await(await request('/painter/bridge',{session:binding.session})).json()).jobs.length,0,'Disabled auto mode must not enqueue');
+  await request('/painter/start',{...binding,session:'Painter-B',projectID:'other',documentName:'Other.psd'});
+  await request('/painter/start',{...binding,resume:true});
+  const restored=await(await request('/painter/state')).json();
+  assert.equal(restored.projectID,binding.projectID);assert.equal(restored.texture,null,'Returning to an old binding must clear the previous project texture');
+  const partA={...binding,projectID:'set-a',documentName:'SetA.psd',setID:'A',sceneID:'multi'};
+  const partB={...binding,projectID:'set-b',documentName:'SetB.psd',setID:'B',sceneID:'multi'};
+  await request('/painter/start',partA);await request('/state',{...texture,documentName:partA.documentName});
+  await request('/painter/start',partB);await request('/state',{...autoTexture,documentName:partB.documentName});
+  const multi=await(await request('/painter/state')).json();
+  assert.deepEqual(multi.textures.map(t=>t.setID).sort(),['A','B']);
+  assert.equal(multi.textures.find(t=>t.setID==='A').url,texture.url,'Second set must preserve first texture');
+  assert.equal((await(await request('/painter/info')).json()).textureSets.length,2);
   console.log('PASS: Painter fresh PNG, stable resource name, acknowledgements, errors, wrong project/session/size rejection, cache cleanup, Blender isolation.');
  }finally{child.kill();await new Promise(r=>child.exitCode===null?child.once('exit',r):r());fs.rmSync(folder,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

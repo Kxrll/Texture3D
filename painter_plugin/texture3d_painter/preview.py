@@ -5,9 +5,10 @@ import struct
 from pathlib import Path
 
 
-def from_obj(filename, material_name, single_material=False):
+def from_obj(filename, material_name, single_material=False, texture_sets=None):
     positions, uvs, faces, names = [], [], [], set()
     material = None
+    object_name = "Objet"
     for raw in Path(filename).read_text(encoding='utf-8-sig').splitlines():
         line = raw.split('#', 1)[0].strip()
         fields = line.split()
@@ -15,6 +16,7 @@ def from_obj(filename, material_name, single_material=False):
             continue
         if fields[0] == 'v': positions.append(tuple(map(float, fields[1:4])))
         elif fields[0] == 'vt': uvs.append(tuple(map(float, fields[1:3])))
+        elif fields[0] in ('o', 'g'): object_name = ' '.join(fields[1:]) or 'Objet'
         elif fields[0] == 'usemtl': material = line[7:].strip()
         elif fields[0] == 'f':
             names.add(material)
@@ -28,13 +30,14 @@ def from_obj(filename, material_name, single_material=False):
                 ti = uv-1 if uv > 0 else len(uvs)+uv
                 if not 0 <= vi < len(positions) or not 0 <= ti < len(uvs): raise ValueError('Indices OBJ hors limites.')
                 corners.append((vi, ti))
-            faces.append((material, corners))
+            faces.append((material, object_name, corners))
     selected = material_name
     if selected is not None and selected not in names:
         if single_material and len(names) == 1: selected = next(iter(names))
         else: raise ValueError('Matériau introuvable pour le viewer : ' + material_name)
     vertices, coordinates, indices, lookup = [], [], [], {}
-    for name, corners in faces:
+    groups = {}
+    for name, object_name, corners in faces:
         if selected is not None and name != selected: continue
         if len(corners) != 3: raise ValueError('Le maillage du viewer doit être triangulé par Painter.')
         for key in corners:
@@ -42,7 +45,8 @@ def from_obj(filename, material_name, single_material=False):
                 lookup[key] = len(vertices)
                 vertices.append(positions[key[0]])
                 coordinates.append(uvs[key[1]])
-            indices.append(lookup[key])
+            groups.setdefault((object_name, name), []).append(lookup[key])
+    for values in groups.values(): indices.extend(values)
     if not vertices or any(not math.isfinite(n) for v in vertices+coordinates for n in v): raise ValueError('Modèle du viewer vide ou invalide.')
     position_data = b''.join(struct.pack('<3f', *v) for v in vertices)
     uv_data = b''.join(struct.pack('<2f', *v) for v in coordinates)
@@ -58,6 +62,21 @@ def from_obj(filename, material_name, single_material=False):
                       'min':[min(v[i] for v in vertices) for i in range(3)],'max':[max(v[i] for v in vertices) for i in range(3)]},
                      {'bufferView':1,'componentType':5126,'count':len(vertices),'type':'VEC2'},
                      {'bufferView':2,'componentType':5125,'count':len(indices),'type':'SCALAR'}]}
+    # Preserve source object/material boundaries without changing vertex or UV coordinates.
+    gltf['nodes'], gltf['meshes'], gltf['materials'] = [], [], []
+    offset = 0
+    for (object_name, material_name), values in groups.items():
+        accessor = len(gltf['accessors'])
+        gltf['accessors'].append({'bufferView':2,'byteOffset':offset*4,'componentType':5125,'count':len(values),'type':'SCALAR'})
+        number = len(gltf['nodes'])
+        material = {'name':material_name or 'Matériau'}
+        if texture_sets and material_name in texture_sets:
+            material['extras'] = {'texture3d_set':texture_sets[material_name]}
+        gltf['materials'].append(material)
+        gltf['nodes'].append({'mesh':number,'name':object_name,'extras':{'texture3d_source_id':object_name,'texture3d_source_name':object_name}})
+        gltf['meshes'].append({'primitives':[{'attributes':{'POSITION':0,'TEXCOORD_0':1},'indices':accessor,'material':number}]})
+        offset += len(values)
+    gltf['scenes'][0]['nodes'] = list(range(len(gltf['nodes'])))
     document = json.dumps(gltf,separators=(',',':')).encode('utf-8')
     document += b' ' * (-len(document)%4)
     result = struct.pack('<4sII',b'glTF',2,28+len(document)+len(binary))+struct.pack('<I4s',len(document),b'JSON')+document+struct.pack('<I4s',len(binary),b'BIN\0')+binary

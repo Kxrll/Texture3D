@@ -57,7 +57,7 @@ def write_images(edges, width, height, folder):
     folder = Path(folder)
     image = QImage(width, height, QImage.Format.Format_ARGB32)
     image.fill(Qt.GlobalColor.transparent)
-    if not image.save(str(folder / 'Peinture.png'), 'PNG'):
+    if not (folder / 'Peinture.png').exists() and not image.save(str(folder / 'Peinture.png'), 'PNG'):
         raise RuntimeError('Impossible de créer la texture transparente.')
     painter = QPainter(image)
     try:

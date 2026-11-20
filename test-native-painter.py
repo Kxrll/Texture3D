@@ -30,7 +30,7 @@ def run():
     mesh = directory/'test.obj'
     mesh.write_text('mtllib test.mtl\nv 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 1 1\nvt 0 1\nusemtl Body\nf 1/1 2/2 3/3 4/4\n')
     (directory/'test.mtl').write_text('newmtl Body\nKd 0.8 0.8 0.8\n')
-    sp.project.create(str(mesh))
+    sp.project.create(str(mesh), settings=sp.project.Settings(default_texture_resolution=2048))
     project = directory/'test.spp'
     sp.project.save_as(str(project))
     material = sp.textureset.get_active_stack().material()
@@ -47,8 +47,8 @@ def run():
     image.fill(QColor(255,0,0,128))
     paint = directory/'paint.png'
     assert image.save(str(paint),'PNG')
-    job = {'image':str(paint),'textureSet':material.name(),'resourceName':'Texture3D_native_test'}
-    assert resources.import_paint(sp,job,str(project)) is False
+    job = {'image':str(paint),'textureSet':material.name(),'resourceName':'Texture3D_native_test','projectID':'native-test'}
+    assert resources.import_paint(sp,job,str(project),directory/'resource-binding.json') is False
     identifier = sp.resource.ResourceID.from_project(name=job['resourceName'])
     resource = sp.resource.Resource.retrieve(identifier)[0]
     fill = sp.layerstack.insert_fill(sp.layerstack.InsertPosition.from_textureset_stack(sp.textureset.get_active_stack()))
@@ -56,18 +56,34 @@ def run():
     old = [r for r in sp.resource.list_project_resources() if r.name==job['resourceName']]
     assert old
     image.fill(QColor(0,0,255,128));assert image.save(str(paint),'PNG')
-    assert resources.import_paint(sp,job,str(project)) is True
+    assert resources.import_paint(sp,job,str(project),directory/'resource-binding.json') is True
     new = [r for r in sp.resource.list_project_resources() if r.name==job['resourceName']]
     assert new and new[0] != old[0], 'Layer must reference the new resource version'
     try:
-        resources.import_paint(sp,job,str(directory/'wrong.spp'))
+        resources.import_paint(sp,job,str(directory/'wrong.spp'),directory/'resource-binding.json')
         raise AssertionError('Wrong project accepted')
     except ValueError:
         pass
+    foreign_file = directory/'foreign.png'
+    foreign_file.write_bytes(paint.read_bytes())
+    foreign = sp.resource.import_project_resource(str(foreign_file),sp.resource.Usage.TEXTURE,name='Texture3D_foreign_collision')
+    foreign_id = foreign.identifier()
+    try:
+        resources.import_paint(sp,{**job,'resourceName':'Texture3D_foreign_collision'},str(project),directory/'foreign-ledger.json')
+        raise AssertionError('Foreign collision accepted')
+    except ValueError:
+        pass
+    assert sp.resource.Resource.retrieve(sp.resource.ResourceID.from_project(name='Texture3D_foreign_collision'))[0].identifier() == foreign_id
+    paint.unlink()  # Simulate the companion deleting its transport PNG.
+    sp.project.save()
+    sp.project.close()
+    sp.project.open(str(project))
+    reopened = [r for r in sp.resource.list_project_resources() if r.name == job['resourceName']]
+    assert reopened, 'Saved SPP must retain the imported resource after transport cleanup'
     sp.project.close()  # Only the temporary project created above.
     return {'ok':True,'directory':str(directory),'material':material.name() if sp.project.is_open() else 'Body',
             'checks':['Painter mesh export and UV parsing','transparent image and UV guide','plugin UI lifecycle',
-                      'Texture resource import','existing layer updated on second import','wrong project rejected']}
+                      'Texture resource import','existing layer updated on second import','wrong project rejected','SPP save and reopen after deleting transport PNG','foreign same-name resource preserved']}
 
 
 try:

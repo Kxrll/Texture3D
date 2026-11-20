@@ -50,10 +50,30 @@ try {
     const distance=zoomGoal===null?camera.position.distanceTo(controls.target):zoomGoal;
     zoomGoal=THREE.MathUtils.clamp(distance*Math.exp(THREE.MathUtils.clamp(delta,-150,150)*0.0018),controls.minDistance,controls.maxDistance);
   },{capture:true,passive:false});
-  const objectTools=createObjectTools({renderer,camera,controls,scene,enabled:!painterMode});
+  const objectTools=createObjectTools({renderer,camera,controls,scene,enabled:true});
   const loader=new GLTFLoader();
   let model=null,texture=null,latestSeq=0,modelSeq=0;
   const setTextures=new Map(),setSequences=new Map();
+  let pbrEnabled=false;
+  const previewLights=new THREE.Group();
+  previewLights.add(new THREE.HemisphereLight(0xfff8ef,0x514858,2));
+  const keyLight=new THREE.DirectionalLight(0xffffff,3);keyLight.position.set(3,4,5);previewLights.add(keyLight);scene.add(previewLights);
+  function refreshPainterMaterial(mesh){
+    if(!painterMode||!mesh.isMesh)return;
+    const id=mesh.userData.textureSet;if(!id)return;
+    const base=setTextures.get(id),rough=setTextures.get(id+'/Roughness'),metal=setTextures.get(id+'/Metallic');
+    const previous=mesh.material;
+    mesh.material=pbrEnabled?new THREE.MeshStandardMaterial({map:base||null,roughnessMap:rough||null,metalnessMap:metal||null,roughness:rough?1:.65,metalness:metal?1:0,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide}):new THREE.MeshBasicMaterial({map:base||null,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide});
+    if(pbrEnabled&&!mesh.geometry.attributes.normal)mesh.geometry.computeVertexNormals();
+    previous.dispose();
+  }
+  if(painterMode){
+    const label=document.createElement('label');label.className='painter-sync';label.style.display='flex';label.style.gap='8px';
+    const toggle=document.createElement('input');toggle.type='checkbox';toggle.id='pbr-preview';
+    label.append(toggle,document.createTextNode('Aperçu PBR · éclairage simple'));document.querySelector('.appearance-section').append(label);
+    toggle.addEventListener('change',()=>{pbrEnabled=toggle.checked;if(model)model.traverse(refreshPainterMaterial);});
+  }
+
   let wireframeEnabled=false;
   function updateWireframe(){
     if(!model)return;
@@ -108,16 +128,16 @@ try {
       if(model){objectTools.clear();scene.remove(model);disposeModel(model);}
       model=candidate;
       model.traverse(o=>{if(o.isMesh){const old=[].concat(o.material)[0];o.userData.textureSet=old.userData.texture3d_set||(old.name.startsWith('Texture3D_set_')?old.name.slice('Texture3D_'.length):null);const map=o.userData.textureSet?setTextures.get(o.userData.textureSet):texture;const color=old.color?.clone()||new THREE.Color(0xc9cbd0);for(const m of [].concat(o.material))m.dispose();o.material=new THREE.MeshBasicMaterial({map:map||null,color:map?0xffffff:color,side:THREE.DoubleSide});}});
-      updateWireframe();scene.add(model);objectTools.setModel(model);frame();document.getElementById('error').textContent='';tell({type:'ready'});
+      if(painterMode)model.traverse(refreshPainterMaterial);updateWireframe();scene.add(model);objectTools.setModel(model);frame();document.getElementById('error').textContent='';tell({type:'ready'});
     },fail);
   }
   async function applyTexture(m){
     if(m.setID){
-      const key=m.setID;setSequences.set(key,m);const img=new Image();img.src=m.url;await img.decode();if(setSequences.get(key)!==m)return;
+      const channel=m.channel||'BaseColor';const key=m.setID+(channel==='BaseColor'?'':'/'+channel);setSequences.set(key,m);const img=new Image();img.src=m.url;await img.decode();if(setSequences.get(key)!==m)return;
       let map=setTextures.get(key);if(map&&map.userData.source===m.url)return;
       const canvas=document.createElement('canvas');const scale=Math.min(1,renderer.capabilities.maxTextureSize/Math.max(m.width,m.height));canvas.width=Math.round(m.width*scale);canvas.height=Math.round(m.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=THREE.SRGBColorSpace;next.userData.source=m.url;setTextures.set(key,next);texture=next;
-      if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===key){o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}});if(map)map.dispose();objectTools.textureChanged(m);return;
+      const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=channel==='BaseColor'?THREE.SRGBColorSpace:THREE.NoColorSpace;next.userData.nativeSize={width:m.width,height:m.height};next.userData.source=m.url;setTextures.set(key,next);texture=next;
+      if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===m.setID){if(painterMode)refreshPainterMaterial(o);else{o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}}});if(map)map.dispose();objectTools.textureChanged(m);return;
     }
     latestSeq=m.seq;
     const img=new Image();img.src=m.url;
@@ -240,6 +260,50 @@ try {
     setInterval(updateAge,1000);
     let exporting=false;
     if(painterMode){const button=document.getElementById('blender');button.lastChild.textContent='Envoyer dans Painter';}
+    if(!painterMode){
+      const button=document.createElement('button');button.id='send-model-painter';button.textContent='Envoyer dans Painter';
+      document.getElementById('blender').after(button);
+      button.addEventListener('click',async()=>{
+        button.disabled=true;const status=document.getElementById('export-status');status.textContent='Export FBX puis ouverture dans Painter…';
+        try{
+          const headers={'X-Texture3D-Key':externalToken,'Content-Type':'application/json'};
+          const refreshResponse=await fetch('/command',{method:'POST',headers,body:JSON.stringify({type:'refresh'})});
+          if(!refreshResponse.ok)throw Error('Photoshop est déconnecté.');
+          const refresh=await refreshResponse.json();let state;const deadline=Date.now()+35000;
+          while(Date.now()<deadline){
+            state=await(await fetch('/state',{headers})).json();
+            if(state.texture?.refreshRequest===refresh.id)break;
+            const revision=await(await fetch('/revision',{headers})).json();
+            if(revision.commandResults?.[refresh.id]?.error)throw Error(revision.commandResults[refresh.id].error);
+            await new Promise(r=>setTimeout(r,250));
+          }
+          if(state?.texture?.refreshRequest!==refresh.id)throw Error('La nouvelle capture Photoshop est indisponible.');
+          const response=await fetch('/blender-to-painter',{method:'POST',headers,body:JSON.stringify({projectID:state.projectID,textureVersion:state.textureVersion})});
+          const text=await response.text();let data;try{data=JSON.parse(text);}catch(_){throw Error('Le service Texture3D doit être mis à jour puis relancé pour envoyer dans Painter.');}if(!response.ok)throw Error(data.error||'Envoi impossible.');
+          status.textContent=data.updated?'Texture actualisée dans Painter.':'Modèle ouvert dans un nouveau projet Painter. Les prochains envois actualiseront la texture.';
+        }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+      });
+    }
+
+    let painterSyncToggle=null,painterSyncStatus=null;
+    if(painterMode){
+      const box=document.createElement('div');box.className='painter-sync';
+      const label=document.createElement('label');painterSyncToggle=document.createElement('input');painterSyncToggle.type='checkbox';painterSyncToggle.id='painter-auto-sync';
+      label.append(painterSyncToggle,document.createTextNode('Synchroniser Painter à la sauvegarde'));
+      painterSyncStatus=document.createElement('p');painterSyncStatus.className='caption';painterSyncStatus.textContent='Mode manuel · aucun calque créé.';
+      box.append(label,painterSyncStatus);document.querySelector('.export-section').append(box);
+      painterSyncToggle.addEventListener('change',async()=>{
+        const enabled=painterSyncToggle.checked;painterSyncToggle.disabled=true;
+        try{
+          const headers={'X-Texture3D-Key':externalToken,'Content-Type':'application/json'};
+          const info=await(await fetch('/info',{headers})).json();
+          const response=await fetch('/sync',{method:'POST',headers,body:JSON.stringify({documentName:info.activeDocument,projectID:info.projectID,enabled})});
+          if(!response.ok)throw Error((await response.json()).error||'Synchronisation indisponible.');
+        }catch(error){painterSyncToggle.checked=!enabled;painterSyncStatus.textContent=error.message;}
+        finally{painterSyncToggle.disabled=false;}
+      });
+    }
+
     document.getElementById('blender').addEventListener('click',async()=>{
       if(exporting)return;
       exporting=true;const button=document.getElementById('blender'),message=document.getElementById('export-status');button.disabled=true;
@@ -301,17 +365,23 @@ try {
         const sets=info.textureSets||[];document.getElementById('texture-set-row').hidden=sets.length<2;
         const signature=JSON.stringify(sets.map(s=>[s.document,s.name]));if(materialSelect.dataset.signature!==signature){materialSelect.replaceChildren(...sets.map(s=>{const option=document.createElement('option');option.value=s.document;option.textContent=s.name;return option;}));materialSelect.dataset.signature=signature;}materialSelect.value=info.activeDocument||'';materialSelect.disabled=!info.online;document.getElementById('associate').hidden=!!sets.length;document.querySelector('#associate + .caption').hidden=!!sets.length;document.querySelector('#associate + .caption').textContent=sets.length?'Choisis un matériau pour ouvrir son document dans Photoshop.':'Pour changer de texture, associe le document ouvert dans Photoshop.';document.querySelector('.export-section .caption').textContent=sets.length?'Ta peinture, sur les objets de la scène ouverte.':'Ta peinture, sur les objets de la scène ouverte.';
         document.getElementById('auto-external').checked=info.auto;
+        if(painterSyncToggle){
+          painterSyncToggle.checked=!!info.sync?.enabled;painterSyncToggle.disabled=!info.painterOnline;
+          painterSyncStatus.textContent=info.sync?.error|| (info.sync?.busy?'Transfert dans Painter…':info.sync?.lastSync?'Dernier envoi · il y a '+Math.max(0,Math.floor((Date.now()-info.sync.lastSync)/1000))+' s':info.sync?.enabled?'Activée pour cette liaison · prochaine sauvegarde':'Mode manuel · aucun calque créé.');
+        }
+
         document.getElementById('bridge-status').textContent=info.online?((/^(À jour|Texture à jour)/.test(info.status)?'Synchronisation active · Ctrl + S':info.status)+(info.blenderOnline?'':' · Blender déconnecté : ouvre la scène et reprends la peinture.')):'Photoshop déconnecté. Rouvre Photoshop ou utilise Reprendre la peinture dans Blender.';
         if(painterMode)document.getElementById('bridge-status').textContent=info.online?(info.status+(info.painterOnline?'':' · Painter déconnecté : reprends le matériau.')):'Photoshop déconnecté. Ouvre le plugin Texture3D dans Photoshop.';
         const response=await fetch('/state?after='+revision,{headers:{'X-Texture3D-Key':externalToken},cache:'no-store'});
         if(response.status===200){
           const state=await response.json();
-          if(activeProject!==state.projectID){activeProject=state.projectID;setSequences.clear();for(const map of setTextures.values())map.dispose();setTextures.clear();}
+          if(activeProject!==(state.sceneID||state.projectID)){activeProject=state.sceneID||state.projectID;setSequences.clear();for(const map of setTextures.values())map.dispose();setTextures.clear();}
           if(state.modelVersion!==lastModelVersion){
             document.getElementById('model-name').textContent=state.model?.name||'Cube.glb';
             loadModel(state.model?new Uint8Array(state.model.bytes).buffer:Uint8Array.from(atob(cubeData),c=>c.charCodeAt(0)).buffer);
             lastModelVersion=state.modelVersion;
           }
+          if(painterMode&&state.textures)for(const map of state.textures)await applyTexture(map);
           if(state.texture && state.textureVersion!==lastTextureVersion){await applyTexture({...state.texture,seq:state.textureVersion});lastTextureVersion=state.textureVersion;lastTextureUpdate=state.texture.updatedAt||Date.now();}
           for(const entry of Object.values(state.textures||{}))await applyTexture(entry);
           revision=state.revision;

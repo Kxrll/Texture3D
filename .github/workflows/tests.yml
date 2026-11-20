@@ -1,0 +1,36 @@
+name: Tests sans licence Adobe
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check
+      - name: Capture UXP simulée et serveur
+        run: npm test
+      - name: Pont Painter HTTP simulé
+        run: node test-painter-bridge.cjs
+      - name: Contrat de propriété des ressources (sans Adobe)
+        run: python test-painter-resources.py
+      - name: Viewer dans Edge headless (hôtes simulés)
+        run: |
+          node test-painter-viewer.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node test-object-tools.cjs
+      - name: Installation simulée sans application Adobe
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File installer/test-upgrade.ps1
+# Les essais Photoshop/Painter/Blender natifs restent une recette séparée sur poste équipé.

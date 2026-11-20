@@ -25,3 +25,11 @@ painter_plugin/**/tool-location.json
 installer/backup-addon-*/
 installer/prepare-clean-test.py
 .session-assets/
+
+.painter-destinations.json*
+
+*.spp
+*.spp.*
+*.fbx
+Projets Painter/
+resource-assets/

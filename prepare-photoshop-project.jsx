@@ -39,11 +39,11 @@
     for (var i = 0; i < app.documents.length; i++) {
         try {
             if (app.documents[i].fullName.fsName === destination.fsName) {
-                app.activeDocument = app.documents[i]; if (!project.painter) showLayers(app.activeDocument.layers); improvePainterGuide(app.activeDocument); return destination.fsName;
+                app.activeDocument = app.documents[i]; if (!project.painter) showLayers(app.activeDocument.layers); return destination.fsName;
             }
         } catch (_) {}
     }
-    if (destination.exists) { var opened = app.open(destination); if (!project.painter) showLayers(opened.layers); improvePainterGuide(opened); return destination.fsName; }
+    if (destination.exists) { var opened = app.open(destination); if (!project.painter) showLayers(opened.layers); return destination.fsName; }
     if (project.resume) throw new Error('Le PSD du projet est introuvable. Utilise Retrouver le PSD dans Blender.');
     var source = app.open(new File(project.texture));
     var doc = source.duplicate(destination.name.replace(/\.psd$/i, ''));
@@ -77,6 +77,7 @@
     paint.move(guideGroup, ElementPlacement.PLACEBEFORE);
     doc.activeLayer = paint;
     improvePainterGuide(doc);
+    if(project.painter && (project.channel === 'Roughness' || project.channel === 'Metallic')) doc.changeMode(ChangeMode.GRAYSCALE);
     var options = new PhotoshopSaveOptions(); options.layers = true; options.embedColorProfile = true;
     doc.saveAs(destination, options, false, Extension.LOWERCASE);
     return destination.fsName;

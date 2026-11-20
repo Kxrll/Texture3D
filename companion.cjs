@@ -11,6 +11,28 @@ let commandID=0,commands=[];
 let commandResults={};
 let targetBlender=null,returnID=0;
 const blenderClients=new Map(),returns=new Map();
+let painterHandoff=null;
+const painterDestinations=new Map();
+const painterDestinationsFile=path.join(__dirname,'.painter-destinations.json');
+try{
+  const saved=JSON.parse(fs.readFileSync(painterDestinationsFile,'utf8'));
+  for(const [id,value] of Object.entries(saved))if(typeof value?.context==='string')painterDestinations.set(id,value);
+}catch(_){}
+// Recover associations made before persistence was introduced; newest owned ledger wins.
+const painterFolder=path.join(__dirname,'Projets Painter');
+if(fs.existsSync(painterFolder)){
+  const candidates=fs.readdirSync(painterFolder).filter(n=>/^binding-[a-f0-9]{64}\.json$/.test(n)).map(n=>path.join(painterFolder,n)).sort((a,b)=>fs.statSync(b).mtimeMs-fs.statSync(a).mtimeMs);
+  for(const file of candidates)try{
+    const data=JSON.parse(fs.readFileSync(file,'utf8'));
+    if(typeof data.projectID==='string'&&typeof data.project==='string'&&Array.isArray(data.urls)&&data.urls.length&&!painterDestinations.has(data.projectID))painterDestinations.set(data.projectID,{context:data.project});
+  }catch(_){}
+}
+function rememberPainter(id,context){
+  painterDestinations.set(id,{context});
+  fs.writeFileSync(painterDestinationsFile+'.tmp',JSON.stringify(Object.fromEntries(painterDestinations)));
+  fs.renameSync(painterDestinationsFile+'.tmp',painterDestinationsFile);
+}
+
 const instanceID=require('node:crypto').randomUUID();
 let currentProject=null,photoshopSession=null,cacheTimer=null;
 const cachePath=path.join(__dirname,'.session-state.json');
@@ -87,6 +109,43 @@ const server=http.createServer(async(req,res)=>{
   const origin=req.headers.origin;
   if(origin && origin!==base && origin!=='null'){res.writeHead(403);res.end();return;}
   try{
+    if(req.method==='POST'&&url.pathname==='/blender-to-painter'){
+      const body=await readJSON(req);
+      if(!blenderOnline()||body.projectID!==targetBlender.projectID)throw Error('Reprends ce projet dans Blender avant l’envoi.');
+      if(painterHandoff)throw Error('Un envoi vers Painter est déjà en cours.');
+      const destination=painterDestinations.get(body.projectID);
+      if(destination){
+        if(!texture||body.textureVersion!==textureVersion)throw Error('Actualise la texture Photoshop avant l’envoi.');
+        const png=Buffer.from(texture.url.split(',')[1]||'','base64');
+        if(png.length<33||png.toString('hex',0,8)!=='89504e470d0a1a0a')throw Error('Capture PNG invalide.');
+        const folder=path.join(__dirname,'Projets Painter');
+        const image=path.join(folder,require('node:crypto').createHash('sha256').update(png).digest('hex')+'.png');
+        if(!fs.existsSync(image))fs.writeFileSync(image,png,{flag:'wx'});
+        const result=await new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>{painterHandoff=null;reject(Error('Painter ne répond pas. Active son plugin Texture3D.'));},30000);
+          painterHandoff={id:require('node:crypto').randomUUID(),action:'texture',projectID:body.projectID,context:destination.context,image,finish(ack){clearTimeout(timeout);painterHandoff=null;if(ack.error)reject(Error(ack.error));else if(!ack.baseColorApplied)reject(Error('Painter utilise encore l’ancien plugin. Enregistre ton projet puis redémarre Painter pour charger l’affectation Base Color.'));else resolve(ack);}};
+        });
+        res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
+      }
+      const folder=path.join(__dirname,'Projets Painter');fs.mkdirSync(folder,{recursive:true});
+      const fbx=path.join(folder,require('node:crypto').randomUUID()+'.fbx');
+      await waitForReturn(targetBlender,{action:'export-painter',fbx});
+      if(!fs.existsSync(fbx)||fs.statSync(fbx).size<24)throw Error('Export FBX absent. Mets à jour l’extension Blender.');
+      const exe=path.join(process.env.ProgramFiles||'C:\\Program Files','Adobe','Adobe Substance 3D Painter','Adobe Substance 3D Painter.exe');
+      if(fs.existsSync(exe))spawn(exe,[],{detached:true,stdio:'ignore',windowsHide:false}).unref();
+      try{
+        const result=await new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>{painterHandoff=null;reject(Error('Active le plugin Texture3D dans Painter, puis réessaie. Le FBX exporté est conservé.'));},60000);
+          painterHandoff={id:require('node:crypto').randomUUID(),fbx,projectID:body.projectID,finish(ack){clearTimeout(timeout);if(!ack.error&&ack.context)rememberPainter(body.projectID,ack.context);painterHandoff=null;ack.error?reject(Error(ack.error)):resolve(ack);}};
+        });
+        res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));
+      }catch(error){throw error;}return;
+    }
+    if(req.method==='POST'&&url.pathname==='/painter/blender-handoff'){
+      const body=await readJSON(req);
+      if(painterHandoff&&body.ack?.id===painterHandoff.id)painterHandoff.finish(body.ack);
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({job:painterHandoff?{id:painterHandoff.id,fbx:painterHandoff.fbx,action:painterHandoff.action,projectID:painterHandoff.projectID,context:painterHandoff.context,image:painterHandoff.image}:null}));return;
+    }
     if(await painter.handle(req,res,url))return;
     if(req.method==='POST' && url.pathname==='/blender-bridge'){
       const body=await readJSON(req);
@@ -97,7 +156,7 @@ const server=http.createServer(async(req,res)=>{
       }
       for(const ack of body.ack||[]){const job=returns.get(ack.id);if(job&&job.session===body.session){job.finish(ack);returns.delete(ack.id);}}
       res.setHeader('Content-Type','application/json');
-      res.end(JSON.stringify({jobs:[...returns.values()].filter(j=>j.session===body.session).map(({id,glb,image,projectID,setID})=>({id,glb,image,projectID,setID}))}));return;
+      res.end(JSON.stringify({jobs:[...returns.values()].filter(j=>j.session===body.session).map(({id,glb,image,projectID,setID,action,fbx})=>({id,glb,image,projectID,setID,action,fbx}))}));return;
     }
     if(req.method==='POST' && url.pathname==='/start-project'){
       const project=await readJSON(req);

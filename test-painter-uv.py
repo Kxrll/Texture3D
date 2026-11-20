@@ -35,6 +35,8 @@ class UVTests(unittest.TestCase):
             all_length=struct.unpack('<I',all_glb[12:16])[0]
             all_document=json.loads(all_glb[20:20+all_length])
             self.assertEqual(all_document['accessors'][2]['count'],6, 'Both materials must be in the common model')
+            self.assertEqual(len(all_document['nodes']),2)
+            self.assertEqual(len(all_document['materials']),2)
             binary=glb[28+length:]
             self.assertEqual(struct.unpack('<6f',binary[36:60]),(0,0,1,0,0,1))
             with self.assertRaises(ValueError): preview.from_obj(mesh,'Missing')
@@ -57,6 +59,9 @@ class UVTests(unittest.TestCase):
             self.assertGreater(guide.pixelColor(0,31).alpha(), 0)  # V=0 is the bottom.
             self.assertEqual(guide.pixelColor(60,2).alpha(), 0)  # Other material excluded.
             self.assertTrue(all(paint.pixelColor(x,y).alpha()==0 for x in range(64) for y in range(32)))
+            existing=b'artist-owned-file';(folder/'Peinture.png').write_bytes(existing)
+            uv.write_images(second,64,32,folder)
+            self.assertEqual((folder/'Peinture.png').read_bytes(),existing,'Resume must never overwrite painting')
 
     def test_missing_outside_and_nonfinite_uv(self):
         with tempfile.TemporaryDirectory() as directory:

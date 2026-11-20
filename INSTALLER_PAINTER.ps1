@@ -13,3 +13,7 @@ Copy-Item -Path (Join-Path $root 'painter_plugin\texture3d_painter\*.py') -Desti
 $location=@{directory=$root}|ConvertTo-Json
 [IO.File]::WriteAllText((Join-Path $destination 'tool-location.json'),$location,(New-Object Text.UTF8Encoding($false)))
 Write-Output 'Plugin copié. Dans Painter : Python > texture3d_painter. Le dossier Texture3D doit rester à son emplacement.'
+
+$startup=Join-Path (Split-Path $directory -Parent) 'startup'
+New-Item -ItemType Directory -Path $startup -Force|Out-Null
+Copy-Item -LiteralPath (Join-Path $root 'painter_plugin\texture3d_autostart.py') -Destination $startup -Force

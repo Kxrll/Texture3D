@@ -195,6 +195,32 @@ def receive():
     while not jobs.empty():
         job = jobs.get()
         try:
+            if job.get('action') == 'export-painter':
+                if str(projects.project_path(bpy.context)) != job['projectID']:
+                    raise ValueError('La scène Blender a changé depuis la demande.')
+                if bpy.context.mode != 'OBJECT':
+                    raise ValueError('Passe en mode Objet avant l’envoi dans Painter.')
+                settings = projects.read_settings(projects.project_path(bpy.context))
+                names = settings.get('source_objects') or []
+                if not names:
+                    raise ValueError('Liste des objets du projet absente. Recrée le projet Texture3D.')
+                objects = [bpy.data.objects.get(name) for name in names]
+                if any(obj is None for obj in objects):
+                    raise ValueError('Un objet du projet est introuvable.')
+                selected = list(bpy.context.selected_objects)
+                active = bpy.context.view_layer.objects.active
+                try:
+                    for obj in selected: obj.select_set(False)
+                    for obj in objects: obj.select_set(True)
+                    bpy.context.view_layer.objects.active = objects[0]
+                    result = bpy.ops.export_scene.fbx(filepath=job['fbx'],use_selection=True,object_types={'MESH'},use_mesh_modifiers=False,bake_anim=False,add_leaf_bones=False)
+                    if 'FINISHED' not in result: raise ValueError('Export FBX impossible.')
+                finally:
+                    for obj in bpy.context.selected_objects: obj.select_set(False)
+                    for obj in selected: obj.select_set(True)
+                    bpy.context.view_layer.objects.active = active
+                results.put({'id':job['id'],'count':len(objects)})
+                continue
             count = apply(job)
             results.put({'id': job['id'], 'count': count})
             if notice:
