@@ -105,3 +105,21 @@ Retour Blender à version exacte, nettoyage PNG de retour, cache de session bina
 ## API et limites
 
 Référence officielle Adobe consultée : [resource](https://experienceleague.adobe.com/en/docs/substance-3d-dev/painter-python/api/substancepainter-package/resource), [remote scripting](https://adobedocs.github.io/painter-python-api/guides/remote-control/). Les modules Python livrés avec Painter 12.2.0 ont également été inspectés. Les signatures réellement employées sont testées nativement. Le travail PBR, Texture Sets indépendants, transfert de canaux et installation multi-version reste à faire ; voir roadmap.
+
+
+## Complément Round Trip local du 20 novembre
+
+Voir [PAINTER-ROUNDTRIP.md](PAINTER-ROUNDTRIP.md) pour l’état le plus récent : bouton d’import, catalogue réel, PSD par carte/set, retour via association, reprise multiple et verrouillage. Les validations natives de cette nouvelle chaîne sont en attente de la séance utilisateur ; les mentions historiques ne valent pas validation de ces changements. Aucun benchmark nouveau ni exécution CI distante revendiqué. Les cartes avancées et masques restent exclus de l’interface faute de validation technique suffisante.
+
+
+## Corrections confirmées pendant la finalisation du Round Trip
+- Réception sur un PSD homonyme situé ailleurs : chemin complet maintenant vérifié avant ouverture/import.
+- Profil, mode ou profondeur incompatibles : refus explicite plutôt que conversion implicite.
+- Calque Base Color géré supprimé : contrôle UID, y compris sous un groupe, avant import de ressource ; aucun nouveau calque automatique de remplacement.
+- Premier envoi Blender n’importait que le modèle : livraison de texture enchaînée après création confirmée.
+- Attente COM sur thread UI Painter : worker dédié, résultat restitué par file Qt.
+- Acquittement tardif/autre récepteur : session affectée au job, bail vérifié avant/après COM, expiration du script de réception.
+- Réimport de carte sans association de retour : métadonnées PSD/set/stack/canal et enregistrement du pont avant confirmation.
+- Empreinte UV insuffisante pour nouveaux projets : signature géométrie/topologie et UUID ajoutés ; contrôles enrichis pour les nouveaux handoffs. Les anciennes liaisons conservent leurs limites de preuve et peuvent nécessiter une reprise explicite.
+
+Pour les lignes actuelles, rechercher les symboles receive_roundtrip, validate_association, managed_layer.validate_owned, inspect_png, painter-handoff-lease, deliverBlenderTexture et updateChannels. Les anciens numéros de ligne de l’audit initial précèdent ces ajouts.

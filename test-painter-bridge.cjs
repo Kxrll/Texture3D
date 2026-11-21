@@ -73,6 +73,8 @@ const {spawn}=require('node:child_process');
   assert.deepEqual(multi.textures.map(t=>t.setID).sort(),['A','B']);
   assert.equal(multi.textures.find(t=>t.setID==='A').url,texture.url,'Second set must preserve first texture');
   assert.equal((await(await request('/painter/info')).json()).textureSets.length,2);
+  assert.equal((await request('/painter-roundtrip',{projectID:partB.projectID,documentName:partB.documentName,channel:'BaseColor'})).status,500,'Import removed');
+  assert.equal((await request('/painter-project',{projectID:'foreign',locate:true})).status,500,'Unrelated recovery refused');
   console.log('PASS: Painter fresh PNG, stable resource name, acknowledgements, errors, wrong project/session/size rejection, cache cleanup, Blender isolation.');
  }finally{child.kill();await new Promise(r=>child.exitCode===null?child.once('exit',r):r());fs.rmSync(folder,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

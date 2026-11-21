@@ -37,3 +37,18 @@ Résultats natifs obtenus en fin de session précédente : deux PSD Body/Hat en 
 Régression importante corrigée : le PNG de transport pouvait être supprimé avant sa lecture différée par Painter lors de la sauvegarde du SPP. Chaque import utilise désormais un PNG immutable conservé dans resource-assets de l’association. Test natif sauvegarde/réouverture du SPP après suppression du transport réussi avant cette reprise ; conservation durable couverte également par un test contractuel.
 
 Limites prioritaires : restauration automatique de toutes les associations après redémarrage (seule la plus récente est actuellement restaurée), contrôle de topologie complet, validation native Metallic/PBR, export de canaux Painter vers Photoshop, mesures mémoire et installation finale. La branche reste expérimentale et locale.
+
+
+## Complément Round Trip local du 20 novembre
+
+Voir [PAINTER-ROUNDTRIP.md](PAINTER-ROUNDTRIP.md) pour l’état le plus récent : bouton d’import, catalogue réel, PSD par carte/set, retour via association, reprise multiple et verrouillage. Les validations natives de cette nouvelle chaîne sont en attente de la séance utilisateur ; les mentions historiques ne valent pas validation de ces changements. Aucun benchmark nouveau ni exécution CI distante revendiqué. Les cartes avancées et masques restent exclus de l’interface faute de validation technique suffisante.
+
+
+## Campagne finale hors applications — Round Trip
+Exécutés avec succès après les correctifs locaux : npm run check ; npm test (quatre scripts) ; test-painter-bridge.cjs ; test-painter-viewer.cjs ; test-object-tools.cjs ; test-roundtrip-photoshop.cjs ; test-painter-texture-export.py (4 tests) ; test-painter-safety.py (3 tests) ; test-painter-resources.py (5 tests) ; test-painter-uv.py (3 tests Qt avec Python Painter). Compilation Python et parsing PowerShell de la réception réussis. git diff --check ne signale pas d’erreur ; avertissements de normalisation LF/CRLF uniquement.
+
+Le pont HTTP couvre maintenant aussi la liaison obsolète, le verrou d’export concurrent, l’acquittement d’une autre session et l’expiration du bail. Le test de réception Photoshop exécute le JSX dans un environnement simulé et vérifie trois versions ajoutées sans suppression de peinture/guide, refus d’un même nom situé ailleurs et refus de profils incompatibles. Il ne remplace pas Photoshop natif.
+
+Les scripts test-native-painter-roundtrip.py et painter-storage-report.py sont préparés. Le premier n’a pas été exécuté dans cette phase et refuse un projet Painter préexistant ; le second fournit un inventaire en lecture seule avec tailles, dates, empreintes et usage non prouvé. Aucune suppression de fichier durable n’est autorisée.
+
+Pas de nouveau résultat natif ni benchmark depuis la demande de reporter les essais à la séance commune. Pas de push pour déclencher GitHub Actions.

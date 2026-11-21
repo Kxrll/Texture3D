@@ -26,6 +26,12 @@ jobs:
         run: node test-painter-bridge.cjs
       - name: Contrat de propriété des ressources (sans Adobe)
         run: python test-painter-resources.py
+      - name: Contrat export natif Painter (API simulée)
+        run: python test-painter-texture-export.py
+      - name: Contrôles PNG, géométrie et calques gérés
+        run: python test-painter-safety.py
+      - name: Réception Photoshop sans écrasement (simulation)
+        run: node test-roundtrip-photoshop.cjs
       - name: Viewer dans Edge headless (hôtes simulés)
         run: |
           node test-painter-viewer.cjs

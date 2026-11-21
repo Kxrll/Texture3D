@@ -21,7 +21,7 @@ import substance_painter.project
 import substance_painter.resource
 import substance_painter.textureset
 import substance_painter.ui
-from . import uv_guide, resources, preview, associations
+from . import uv_guide, resources, preview, associations, texture_export, image_checks, managed_layer
 
 _panel = None
 _dock = None
@@ -82,11 +82,21 @@ def ensure_service(root):
     raise RuntimeError('Le service Texture3D ne démarre pas. Consulte companion-painter.log.')
 
 
+def current_mesh_signature():
+    with tempfile.TemporaryDirectory(prefix='texture3d-identity-') as temporary:
+        mesh=Path(temporary)/'mesh.obj'
+        result=sp.export.export_mesh(str(mesh),sp.export.MeshExportOption.BaseMesh)
+        if result.status!=sp.export.ExportStatus.Success: raise RuntimeError('Impossible de vérifier le maillage Painter.')
+        return associations.mesh_signature(mesh)
+
+
 def validate_association(metadata):
     """Recheck live UVs/resolution on the UI thread before trusting persisted bindings."""
     project = sp.project.file_path() if sp.project.is_open() else None
     if not project or Path(project).resolve() != Path(metadata['painter_project']).resolve():
         raise ValueError('Le projet Painter a changé. Reprends la liaison depuis ce projet.')
+    if metadata.get('painter_uuid') and str(sp.project.get_uuid())!=metadata['painter_uuid']:
+        raise ValueError('L’UUID du projet Painter ne correspond pas à la liaison enregistrée.')
     materials = sp.textureset.all_texture_sets()
     if not materials or any(material.has_uv_tiles() for material in materials):
         raise ValueError('Association incompatible : matériaux absents ou UV en tuiles.')
@@ -96,7 +106,7 @@ def validate_association(metadata):
         if len(materials) != 1:
             raise ValueError('Texture Set associé introuvable ou ambigu.')
     channel = metadata.get('channel', 'BaseColor')
-    if original_name is not None and not materials[0].get_stack().has_channel(getattr(sp.textureset.ChannelType, channel)):
+    if original_name is not None and not materials[0].get_stack(metadata.get('stack','')).has_channel(getattr(sp.textureset.ChannelType, channel)):
         raise ValueError('Le canal associé a été supprimé. Aucune modification du projet.')
     names = sorted(material.name() for material in materials)
     width = max(material.get_resolution().width for material in materials)
@@ -107,7 +117,9 @@ def validate_association(metadata):
         if result.status != sp.export.ExportStatus.Success:
             raise RuntimeError('Impossible de vérifier les UV du projet avant synchronisation.')
         edges = uv_guide.read_edges(mesh, original_name)
-    identity = associations.identity(project, names, uv_guide.signature(edges, width, height), original_name, metadata.get('channel', 'BaseColor'))
+        if metadata.get('mesh_signature') and associations.mesh_signature(mesh)!=metadata['mesh_signature']:
+            raise ValueError('La géométrie ou la topologie a changé depuis la liaison. Reprends explicitement le projet.')
+    identity = associations.identity(project, names, uv_guide.signature(edges, width, height), original_name, metadata.get('channel', 'BaseColor'),metadata.get('stack',''))
     if identity != metadata['project_id']:
         raise ValueError('Les UV, matériaux ou dimensions ont changé. Reprends Peindre dans Photoshop pour créer une nouvelle association ; le PSD existant reste intact.')
 
@@ -127,6 +139,7 @@ class Panel(QtWidgets.QWidget):
         self.stopped = threading.Event()
         self.config = None
         self.root = None
+        self.catalogue = None
         self.handoff_running = False
         self.handoff_seen = set()
         self.handoff_ack = None
@@ -143,7 +156,7 @@ class Panel(QtWidgets.QWidget):
         self.set_choice.addItem('Document commun — tous les Texture Sets', None)
         layout.addWidget(self.set_choice)
         self.channel_choice = QtWidgets.QComboBox()
-        for key, label in [('BaseColor', 'Base Color'), ('Roughness', 'Roughness'), ('Metallic', 'Metallic')]:
+        for key, label in [('BaseColor', 'Base Color'), ('Emissive', 'Emissive'), ('Roughness', 'Roughness'), ('Metallic', 'Metallic')]:
             self.channel_choice.addItem(label, key)
         layout.addWidget(self.channel_choice)
         refresh_sets = QtWidgets.QPushButton('Actualiser les Texture Sets')
@@ -205,6 +218,7 @@ class Panel(QtWidgets.QWidget):
                 result = sp.export.export_mesh(str(mesh), sp.export.MeshExportOption.BaseMesh)
                 if result.status != sp.export.ExportStatus.Success:
                     raise RuntimeError('Export du maillage impossible : ' + result.message)
+                mesh_fingerprint = associations.mesh_signature(mesh)
                 all_edges = uv_guide.read_edges(mesh, None)
                 edges = uv_guide.read_edges(mesh, associations.original_name(chosen)) if chosen else all_edges
                 scene_id = associations.identity(project, [associations.original_name(m) for m in materials], uv_guide.signature(all_edges, max(m.get_resolution().width for m in materials), max(m.get_resolution().height for m in materials)))
@@ -225,9 +239,9 @@ class Panel(QtWidgets.QWidget):
             uv_guide.write_images(edges, width, height, folder)
             (folder / 'Modele.glb').write_bytes(bytes(model_bytes))
             metadata = {'source': 'painter', 'document': document, 'texture': 'Peinture.png', 'uv': 'Reperes_UV.png',
-                        'project_id': identity, 'painter_project': str(Path(project).resolve()),
+                        'project_id': identity, 'painter_project': str(Path(project).resolve()), 'painter_uuid':str(sp.project.get_uuid()),
                         'texture_set': set_label, 'texture_sets': material_names, 'width': width, 'height': height,
-                        'source_material': original_name, 'set_id': set_id, 'scene_id': scene_id, 'channel': channel}
+                        'mesh_signature':mesh_fingerprint,'source_material': original_name, 'set_id': set_id, 'scene_id': scene_id, 'channel': channel}
             (folder / 'texture3d-project.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding='utf-8')
             self.bindings[identity] = metadata
             self.watch_document = folder / document
@@ -235,7 +249,7 @@ class Panel(QtWidgets.QWidget):
             self.restore_for = str(Path(project).resolve())
             payload = {'session': self.session, 'projectID': identity, 'documentName': document,
                        'textureSet': set_label, 'textureSets': material_names, 'width': width, 'height': height,
-                       'setID': set_id, 'sceneID': scene_id, 'channel': channel,
+                       'setID': set_id, 'sceneID': scene_id, 'channel': channel, 'painterProject':str(Path(project).resolve()),
                        'bytes': model_bytes, 'name': Path(project).stem + '.glb'}
             self.status.setText('Ouverture de Photoshop…')
             threading.Thread(target=self.open_photoshop, args=(folder, payload), daemon=True).start()
@@ -293,24 +307,24 @@ class Panel(QtWidgets.QWidget):
             if not candidates:
                 self.events.put(('restore-empty', None))
                 return
-            _, folder, data = max(candidates, key=lambda item: item[0])
             config = ensure_service(root)
-            payload = {'session': self.session, 'projectID': data['project_id'], 'documentName': data['document'],
-                       'textureSet': data['texture_set'], 'textureSets': data.get('texture_sets') or [data['texture_set']],
-                       'width': data['width'], 'height': data['height'], 'resume': True,
-                       'setID': data.get('set_id'), 'sceneID': data.get('scene_id'), 'channel': data.get('channel', 'BaseColor')}
-            model = folder / 'Modele.glb'
-            if model.is_file():
-                payload.update(bytes=list(model.read_bytes()), name=Path(project).stem+'.glb')
-            for attempt in range(6):
-                try:
-                    request(config, '/painter/start', payload)
-                    break
-                except RuntimeError as error:
-                    if 'autre fenêtre Painter' not in str(error) or attempt == 5:
-                        raise
-                    if self.stopped.wait(2): return
-            self.events.put(('restored', (root, config, folder, data)))
+            for _, folder, data in sorted(candidates,key=lambda item:item[0]):
+                payload = {'session': self.session, 'projectID': data['project_id'], 'documentName': data['document'],
+                           'textureSet': data['texture_set'], 'textureSets': data.get('texture_sets') or [data['texture_set']],
+                           'width': data['width'], 'height': data['height'], 'resume': True,
+                           'setID': data.get('set_id'), 'sceneID': data.get('scene_id'), 'channel': data.get('channel', 'BaseColor'), 'painterProject':data['painter_project']}
+                model = folder / 'Modele.glb'
+                if model.is_file():
+                    payload.update(bytes=list(model.read_bytes()), name=Path(project).stem+'.glb')
+                for attempt in range(6):
+                    try:
+                        request(config, '/painter/start', payload)
+                        break
+                    except RuntimeError as error:
+                        if 'autre fenêtre Painter' not in str(error) or attempt == 5:
+                            raise
+                        if self.stopped.wait(2): return
+                self.events.put(('restored', (root, config, folder, data)))
         except Exception as error:
             self.events.put(('restore-error', str(error)))
 
@@ -320,7 +334,7 @@ class Panel(QtWidgets.QWidget):
             config_path = root / 'companion-config.json'
             if not config_path.is_file(): return
             config = json.loads(config_path.read_text(encoding='utf-8-sig'))
-            result = request(config, '/painter/blender-handoff', {'ack': self.handoff_ack})
+            result = request(config, '/painter/blender-handoff', {'session':self.session,'ack': self.handoff_ack, 'catalogue': self.catalogue})
             self.handoff_ack = None
             if result.get('job'): self.events.put(('handoff', (root, result['job'])))
         except Exception:
@@ -329,41 +343,76 @@ class Panel(QtWidgets.QWidget):
             self.handoff_running = False
 
     def tick(self):
+        try:
+            self.catalogue = {'uuid':str(sp.project.get_uuid()),'context':texture_export.context_id(sp),'project':str(Path(sp.project.file_path()).resolve()) if sp.project.file_path() else None,'choices':texture_export.available(sp,experimental=True)} if sp.project.is_open() else None
+        except Exception:
+            self.catalogue = None
         if not self.handoff_running and not self.stopped.is_set():
             self.handoff_running = True
             threading.Thread(target=self.poll_handoff, daemon=True).start()
         while not self.events.empty():
             kind, value = self.events.get_nowait()
-            if kind == 'handoff':
+            if kind == 'roundtrip-complete':
+                root,config,project_folder,metadata,ack = value
+                self.bindings[metadata['project_id']] = metadata
+                self.watch_documents[project_folder/metadata['document']] = None
+                self.root,self.config = root,config
+                self.handoff_ack = ack
+                self.status.setText('Carte Painter reçue dans Photoshop, sans écraser les calques.')
+            elif kind == 'roundtrip-error':
+                self.handoff_ack = value
+                self.status.setText(value['error'])
+            elif kind == 'handoff':
                 root, job = value
                 if job['id'] in self.handoff_seen: continue
                 self.handoff_seen.add(job['id'])
+                if len(self.handoff_seen)>2048: self.handoff_seen={job['id']}
                 ack = {'id':job['id']}
                 try:
+                    if job.get('action') in ('locate-project','open-project'):
+                        target = job.get('project')
+                        if job['action']=='locate-project':
+                            target,_ = QtWidgets.QFileDialog.getOpenFileName(self,'Retrouver le projet Substance',target or '', 'Projets Substance (*.spp)')
+                            if not target: raise ValueError('Choix du projet annulé. Le projet ouvert est conservé.')
+                        target = Path(target or '').resolve()
+                        if not target.is_file() or target.suffix.lower()!='.spp':
+                            raise ValueError('Le fichier .spp associé est introuvable. Utilise Retrouver le projet Substance.')
+                        current = sp.project.file_path() if sp.project.is_open() else None
+                        same = current and Path(current).resolve()==target
+                        if not same:
+                            if sp.project.is_open():
+                                if sp.project.needs_saving():
+                                    answer=QtWidgets.QMessageBox.question(self,'Changer de projet Substance','Le projet ouvert contient des modifications non enregistrées. Le fermer sans les enregistrer pour ouvrir le fichier choisi ?',QtWidgets.QMessageBox.StandardButton.Yes|QtWidgets.QMessageBox.StandardButton.No,QtWidgets.QMessageBox.StandardButton.No)
+                                    if answer!=QtWidgets.QMessageBox.StandardButton.Yes:
+                                        raise ValueError('Ouverture annulée. Enregistre ton travail puis réessaie.')
+                                sp.project.close()
+                            sp.project.open(str(target))
+                        ack.update(project=str(target),context=texture_export.context_id(sp),uuid=str(sp.project.get_uuid()),meshSignature=current_mesh_signature(),opened=True)
+                        self.handoff_ack=ack
+                        self.status.setText('Projet Substance associé : '+target.name)
+                        continue
                     if job.get('action') == 'texture':
+                        if job.get('meshSignature') and current_mesh_signature()!=job['meshSignature']:
+                            raise ValueError('Le maillage Painter a changé depuis l’export Blender. Nouvelle association nécessaire.')
                         image = Path(job['image']).resolve()
                         if image.parent != (root / 'Projets Painter').resolve() or image.suffix != '.png':
                             raise ValueError('Chemin de texture invalide.')
+                        image_checks.inspect_png(image,expected_sha=job.get('sha256'))
                         context = job['context']
                         ledger = root / 'Projets Painter' / ('binding-' + hashlib.sha256((job['projectID']+context).encode()).hexdigest() + '.json')
                         names = [m.name() for m in sp.textureset.all_texture_sets()] if sp.project.is_open() else []
                         resource_job = {'image':str(image),'projectID':job['projectID'],'textureSets':names,'textureSet':'Texture commune','resourceName':'Texture3D_'+hashlib.sha256(job['projectID'].encode()).hexdigest()[:20]}
+                        if ledger.exists():
+                            managed_layer.validate_owned(sp,json.loads(ledger.read_text(encoding='utf-8')),
+                                lambda material,stack: associations.original_name(material)+'/'+stack.name())
                         resources.import_paint(sp, resource_job, '', ledger, expected_context=context)
                         # Explicitly requested Blender-to-Painter automatic Base Color setup.
                         state = json.loads(ledger.read_text(encoding='utf-8'))
                         assigned = state.setdefault('baseColorLayers', {})
                         identifier = sp.resource.Resource.retrieve(sp.resource.ResourceID.from_project(name=resource_job['resourceName']))[0].identifier()
-                        for material in sp.textureset.all_texture_sets():
-                            for stack in material.all_stacks():
-                                if not stack.has_channel(sp.textureset.ChannelType.BaseColor): continue
-                                key = associations.original_name(material) + '/' + stack.name()
-                                if key in assigned: continue
-                                layer = sp.layerstack.insert_fill(sp.layerstack.InsertPosition.from_textureset_stack(stack))
-                                layer.set_name('Texture3D — Base Color')
-                                layer.active_channels = {sp.textureset.ChannelType.BaseColor}
-                                layer.set_source(sp.textureset.ChannelType.BaseColor, identifier)
-                                assigned[key] = layer.uid()
-                                ledger.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
+                        managed_layer.ensure_base_color(sp,state,identifier,
+                            lambda material,stack: associations.original_name(material)+'/'+stack.name(),
+                            lambda: ledger.write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8'))
                         ack['updated'] = True
                         ack['baseColorApplied'] = True
                         self.status.setText('Texture appliquée en Base Color dans ce projet Painter.')
@@ -376,6 +425,8 @@ class Panel(QtWidgets.QWidget):
                         raise ValueError('FBX de transfert invalide.')
                     sp.project.create(str(mesh), settings=sp.project.Settings(default_texture_resolution=2048))
                     ack['created'] = True
+                    ack['meshSignature'] = current_mesh_signature()
+                    ack['uuid'] = str(sp.project.get_uuid())
                     ack['context'] = sp.resource.ResourceID.from_project(name='Texture3D_context').context
                     self.status.setText('Modèle Blender ouvert dans un nouveau projet Painter. Enregistre-le pour utiliser Peindre dans Photoshop.')
                 except Exception as error:
@@ -487,5 +538,5 @@ def close_plugin():
 def reload_plugin():
     """Painter keeps package helpers cached when reloading only __init__."""
     import importlib
-    for module in (uv_guide, resources, preview, associations):
+    for module in (uv_guide, resources, preview, associations, texture_export, image_checks, managed_layer):
         importlib.reload(module)

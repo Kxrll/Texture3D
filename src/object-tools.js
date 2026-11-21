@@ -20,6 +20,7 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
   let groups=[],root=null,selected=null,isolated=false,uvMode=false,hit=null,down=null,highlights=[];
   let zoom=1,pan={x:0,y:0},uvDrag=null;
   const dimensions=new Map();
+  let uvPaths=new WeakMap();
   const visible=mesh=>{for(let o=mesh;o;o=o.parent)if(!o.visible)return false;return true;};
   function clearHighlights(){for(const line of highlights){line.removeFromParent();line.geometry.dispose();line.material.dispose();}highlights=[];}
   function highlight(){
@@ -90,22 +91,30 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
     // Draw geometry UVs independently of the Photoshop guide layer (excluded from paint).
     let triangleCount=0;
     ctx.save();ctx.beginPath();ctx.rect(x,y,rw,rh);ctx.clip();ctx.beginPath();
+    const layout=new Path2D();
     for(const part of selected?.meshes||[]){
       const geometry=part.geometry,uvs=geometry.attributes.uv;if(!uvs)continue;
       const index=geometry.index,count=index?index.count:uvs.count;
-      for(let i=0;i+2<count;i+=3){
-        const slot=geometry.groups.find(g=>i>=g.start&&i<g.start+g.count)?.materialIndex||0;
-        const material=Array.isArray(part.material)?part.material[slot]:part.material;
-        const partMap=material?.map;
-        if(partMap!==map)continue;
-        for(let k=0;k<3;k++){
-          const point=textureUV(new THREE.Vector2().fromBufferAttribute(uvs,index?index.getX(i+k):i+k),partMap);
-          if(k===0)ctx.moveTo(x+point.x*rw,y+point.y*rh);else ctx.lineTo(x+point.x*rw,y+point.y*rh);
+      const transformKey=JSON.stringify([uvs.version,index?.version,geometry.groups,map?.uuid,map?.flipY,map?.wrapS,map?.wrapT,map?.matrix?.elements]);
+      let cached=uvPaths.get(part);
+      if(!cached||cached.key!==transformKey){
+        const path=new Path2D();let triangles=0;
+        for(let i=0;i+2<count;i+=3){
+          const slot=geometry.groups.find(g=>i>=g.start&&i<g.start+g.count)?.materialIndex||0;
+          const material=Array.isArray(part.material)?part.material[slot]:part.material;
+          const partMap=material?.map;
+          if(partMap!==map)continue;
+          for(let k=0;k<3;k++){
+            const point=textureUV(new THREE.Vector2().fromBufferAttribute(uvs,index?index.getX(i+k):i+k),partMap);
+            if(k===0)path.moveTo(point.x,point.y);else path.lineTo(point.x,point.y);
+          }
+          path.closePath();triangles++;
         }
-        ctx.closePath();triangleCount++;
+        cached={key:transformKey,path,triangles};uvPaths.set(part,cached);
       }
+      layout.addPath(cached.path,new DOMMatrix([rw,0,0,rh,x,y]));triangleCount+=cached.triangles;
     }
-    ctx.strokeStyle='#ffffffb0';ctx.lineWidth=2.5;ctx.stroke();ctx.strokeStyle='#292329';ctx.lineWidth=.85;ctx.stroke();ctx.restore();
+    ctx.strokeStyle='#ffffffb0';ctx.lineWidth=2.5;ctx.stroke(layout);ctx.strokeStyle='#292329';ctx.lineWidth=.85;ctx.stroke(layout);ctx.restore();
     canvas.dataset.uvTriangles=String(triangleCount);
     const caption=popup.querySelector('#uv-status');
     if(!hit||!visible(hit.object)){caption.textContent=triangleCount?selected.name+' · UV de l’objet · clique sur le modèle pour placer un repère.':selected?'Aucune coordonnée UV disponible pour cet objet.':'Sélectionne un objet pour afficher ses UV.';return;}
@@ -155,7 +164,7 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
   header.addEventListener('pointerup',()=>{windowDrag=null;});header.addEventListener('pointercancel',()=>{windowDrag=null;});
   new ResizeObserver(drawUV).observe(surface);
   return {
-    clear(){clearHighlights();groups=[];root=null;selected=null;hit=null;down=null;isolated=false;dimensions.clear();renderList();drawUV();},
+    clear(){clearHighlights();uvPaths=new WeakMap();groups=[];root=null;selected=null;hit=null;down=null;isolated=false;dimensions.clear();renderList();drawUV();},
     setModel(model){
       this.clear();root=model;if(!enabled)return;
       const grouped=new Map();

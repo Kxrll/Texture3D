@@ -1,3 +1,9 @@
+# État de finalisation du Round Trip
+
+La table historique ci-dessous est l’audit de départ. Pour l’état actuel du code, consulter PAINTER-FINALISATION.md et PAINTER-ROUNDTRIP.md.
+
+Code ajouté : import depuis le viewer, export natif, catalogue réel, PSD par set/carte/stack, retour via association, Emissive, quatre cartes avancées expérimentales, reprise multiple, contrôle des calques gérés, intégrité des PNG, routage de session, concurrence, durée export, inventaire et optimisations viewer. Les essais natifs restent la condition de validation convenue avec l’utilisateur. Les masques calculés individuels ne sont pas revendiqués exportables par une API bitmap vérifiée.
+
 # Feuille de route Painter
 
 État au 19 novembre 2026 ; branche feature/painter-integration. Aucun push ni nouvelle release.
@@ -13,3 +19,8 @@
 | G Finalisation | Documentation initiale | CI locale ajoutée (pas encore exécutée sur GitHub), performances, UX, installateur optionnel et campagne complète |
 
 Ne pas publier ni modifier main. Ne pas qualifier une fonctionnalité de validée dans les applications sur la seule base d’un mock. Le support UDIM reste refusé explicitement. La limite 8192 du code ne constitue pas une validation 8K.
+
+
+## Complément Round Trip local du 20 novembre
+
+Voir [PAINTER-ROUNDTRIP.md](PAINTER-ROUNDTRIP.md) pour l’état le plus récent : bouton d’import, catalogue réel, PSD par carte/set, retour via association, reprise multiple et verrouillage. Les validations natives de cette nouvelle chaîne sont en attente de la séance utilisateur ; les mentions historiques ne valent pas validation de ces changements. Aucun benchmark nouveau ni exécution CI distante revendiqué. Les cartes avancées et masques restent exclus de l’interface faute de validation technique suffisante.

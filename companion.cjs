@@ -1,7 +1,8 @@
 const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
-const {spawn}=require('node:child_process');
+const {spawn,execFile}=require('node:child_process');
+let painterPickerBusy=false;
 const config=require('./companion-config.json');
 const base='http://127.0.0.1:'+config.port;
 const viewerURL=base+'/viewer/index.html#token='+config.token;
@@ -12,6 +13,9 @@ let commandResults={};
 let targetBlender=null,returnID=0;
 const blenderClients=new Map(),returns=new Map();
 let painterHandoff=null;
+let painterCatalogue=null;
+const painterReceivers=new Map();
+let painterLastTransfer=null,painterLastError=null;
 const painterDestinations=new Map();
 const painterDestinationsFile=path.join(__dirname,'.painter-destinations.json');
 try{
@@ -27,12 +31,38 @@ if(fs.existsSync(painterFolder)){
     if(typeof data.projectID==='string'&&typeof data.project==='string'&&Array.isArray(data.urls)&&data.urls.length&&!painterDestinations.has(data.projectID))painterDestinations.set(data.projectID,{context:data.project});
   }catch(_){}
 }
-function rememberPainter(id,context){
-  painterDestinations.set(id,{context});
+function rememberPainter(id,context,uuid,meshSignature,project){
+  const previous=painterDestinations.get(id);
+  painterDestinations.set(id,{context,uuid,meshSignature,project:project||(previous?.context===context?previous.project:undefined)});
   fs.writeFileSync(painterDestinationsFile+'.tmp',JSON.stringify(Object.fromEntries(painterDestinations)));
   fs.renameSync(painterDestinationsFile+'.tmp',painterDestinationsFile);
 }
 
+async function openPainterProject(projectID,{locate=false,project}={}){
+  if(painterHandoff)throw Error('Un transfert Painter est déjà en cours.');
+  const exe=path.join(process.env.ProgramFiles||'C:\\Program Files','Adobe','Adobe Substance 3D Painter','Adobe Substance 3D Painter.exe');
+  await require('./painter-launch.cjs').launchIfNeeded({connected:[...painterReceivers.values()].some(r=>Date.now()-r.seen<5000),launch:()=>{if(!fs.existsSync(exe))throw Error('Ouvre Painter manuellement.');spawn(exe,[],{detached:true,stdio:'ignore',windowsHide:false}).unref();}});
+  const result=await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{painterHandoff=null;reject(Error('Choix du projet expiré. Réessaie Retrouver le projet Substance.'));},180000);
+    painterHandoff={id:require('node:crypto').randomUUID(),action:locate?'locate-project':'open-project',projectID,project,finish(ack){clearTimeout(timer);painterHandoff=null;ack.error?reject(Error(ack.error)):resolve(ack);}};
+  });
+  if(!result.context||!result.project)throw Error('Painter n’a pas confirmé le projet ouvert.');
+  rememberPainter(projectID,result.context,result.uuid,result.meshSignature,result.project);
+  return result;
+}
+async function deliverBlenderTexture(body,destination){
+        if(!texture||body.textureVersion!==textureVersion)throw Error('Actualise la texture Photoshop avant l’envoi.');
+        const png=Buffer.from(texture.url.split(',')[1]||'','base64');
+        if(png.length<33||png.toString('hex',0,8)!=='89504e470d0a1a0a')throw Error('Capture PNG invalide.');
+        const folder=path.join(__dirname,'Projets Painter');
+        const image=path.join(folder,require('node:crypto').createHash('sha256').update(png).digest('hex')+'.png');
+        if(!fs.existsSync(image))fs.writeFileSync(image,png,{flag:'wx'});
+        const result=await new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>{painterHandoff=null;reject(Error('Painter ne répond pas. Active son plugin Texture3D.'));},30000);
+          painterHandoff={id:require('node:crypto').randomUUID(),action:'texture',projectID:body.projectID,context:destination.context,meshSignature:destination.meshSignature,image,sha256:require('node:crypto').createHash('sha256').update(png).digest('hex'),finish(ack){clearTimeout(timeout);painterHandoff=null;if(ack.error)reject(Error(ack.error));else if(!ack.baseColorApplied)reject(Error('Painter utilise encore l’ancien plugin. Enregistre ton projet puis redémarre Painter pour charger l’affectation Base Color.'));else resolve(ack);}};
+        });
+        return result;
+}
 const instanceID=require('node:crypto').randomUUID();
 let currentProject=null,photoshopSession=null,cacheTimer=null;
 const cachePath=path.join(__dirname,'.session-state.json');
@@ -109,42 +139,82 @@ const server=http.createServer(async(req,res)=>{
   const origin=req.headers.origin;
   if(origin && origin!==base && origin!=='null'){res.writeHead(403);res.end();return;}
   try{
+    if(req.method==='POST'&&['/painter-roundtrip','/painter-catalogue','/painter-handoff-lease'].includes(url.pathname)){
+      throw Error('L’import depuis Painter a été retiré. Utilise l’export manuel de Substance.');
+    }
+    if(req.method==='POST'&&url.pathname==='/painter-project'){
+      const body=await readJSON(req);
+      const active=painter.association(painter.activeDocument);
+      if(typeof body.projectID!=='string'||!body.projectID||body.projectID.length>1024||(body.projectID!==currentProject?.projectID&&body.projectID!==active?.projectID))throw Error('Projet Texture3D non associé.');
+      if(painterPickerBusy||painterHandoff)throw Error('Un choix de fichier ou un transfert est déjà en cours.');
+      painterPickerBusy=true;
+      try{
+        const selected=await new Promise((resolve,reject)=>execFile('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-STA','-File',path.join(__dirname,'choose-painter-project.ps1')],{windowsHide:true,timeout:180000,encoding:'utf8'},(error,stdout)=>{
+          if(error){reject(Error('Le sélecteur de fichier a été fermé ou a expiré.'));return;}
+          try{resolve(JSON.parse(stdout.replace(/^\uFEFF/,'').trim()));}catch(_){reject(Error('Réponse du sélecteur de fichier invalide.'));}
+        }));
+        if(selected.cancelled){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({cancelled:true}));return;}
+        if(typeof selected.file!=='string'||path.extname(selected.file).toLowerCase()!=='.spp'||!fs.statSync(selected.file).isFile())throw Error('Le fichier choisi n’est pas un projet .spp valide.');
+        if(body.projectID!==currentProject?.projectID&&body.projectID!==painter.association(painter.activeDocument)?.projectID)throw Error('Le projet Texture3D a changé pendant le choix du fichier. Réessaie.');
+        const result=await openPainterProject(body.projectID,{project:selected.file});
+        res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
+      }finally{painterPickerBusy=false;}
+    }
     if(req.method==='POST'&&url.pathname==='/blender-to-painter'){
+      if(painterPickerBusy)throw Error('Termine le choix du fichier Substance avant l’envoi.');
       const body=await readJSON(req);
       if(!blenderOnline()||body.projectID!==targetBlender.projectID)throw Error('Reprends ce projet dans Blender avant l’envoi.');
       if(painterHandoff)throw Error('Un envoi vers Painter est déjà en cours.');
-      const destination=painterDestinations.get(body.projectID);
+      const previous=painterDestinations.get(body.projectID);
+      let destination;
+      if(previous?.project){await openPainterProject(body.projectID,{project:previous.project});destination=painterDestinations.get(body.projectID);}
+      else destination=require('./painter-launch.cjs').currentTarget([...painterReceivers.values()],previous);
+      const log=(action)=>{try{fs.appendFileSync(path.join(__dirname,'companion-painter-transfers.log'),JSON.stringify({at:new Date().toISOString(),action,projectHash:require('node:crypto').createHash('sha256').update(body.projectID).digest('hex').slice(0,16)})+'\n');}catch(_){}};
       if(destination){
-        if(!texture||body.textureVersion!==textureVersion)throw Error('Actualise la texture Photoshop avant l’envoi.');
-        const png=Buffer.from(texture.url.split(',')[1]||'','base64');
-        if(png.length<33||png.toString('hex',0,8)!=='89504e470d0a1a0a')throw Error('Capture PNG invalide.');
-        const folder=path.join(__dirname,'Projets Painter');
-        const image=path.join(folder,require('node:crypto').createHash('sha256').update(png).digest('hex')+'.png');
-        if(!fs.existsSync(image))fs.writeFileSync(image,png,{flag:'wx'});
-        const result=await new Promise((resolve,reject)=>{
-          const timeout=setTimeout(()=>{painterHandoff=null;reject(Error('Painter ne répond pas. Active son plugin Texture3D.'));},30000);
-          painterHandoff={id:require('node:crypto').randomUUID(),action:'texture',projectID:body.projectID,context:destination.context,image,finish(ack){clearTimeout(timeout);painterHandoff=null;if(ack.error)reject(Error(ack.error));else if(!ack.baseColorApplied)reject(Error('Painter utilise encore l’ancien plugin. Enregistre ton projet puis redémarre Painter pour charger l’affectation Base Color.'));else resolve(ack);}};
-        });
+        log('update-open-painter');
+        const result=await deliverBlenderTexture(body,destination);
+        rememberPainter(body.projectID,destination.context,destination.uuid,destination.meshSignature);
         res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
       }
+      if(previous)throw Error('Le fichier .spp associé n’est pas connu. Utilise Retrouver le projet Substance ; aucun nouveau projet créé.');
+      const connected=[...painterReceivers.values()].some(r=>Date.now()-r.seen<5000);
+      if(!connected&&await require('./painter-launch.cjs').isRunning())throw Error('Painter est ouvert, mais son plugin Texture3D ne répond pas encore. Attends quelques secondes ou active Python → texture3d_painter ; aucune nouvelle instance ouverte.');
+      log('open-model-in-painter');
       const folder=path.join(__dirname,'Projets Painter');fs.mkdirSync(folder,{recursive:true});
       const fbx=path.join(folder,require('node:crypto').randomUUID()+'.fbx');
       await waitForReturn(targetBlender,{action:'export-painter',fbx});
       if(!fs.existsSync(fbx)||fs.statSync(fbx).size<24)throw Error('Export FBX absent. Mets à jour l’extension Blender.');
       const exe=path.join(process.env.ProgramFiles||'C:\\Program Files','Adobe','Adobe Substance 3D Painter','Adobe Substance 3D Painter.exe');
-      if(fs.existsSync(exe))spawn(exe,[],{detached:true,stdio:'ignore',windowsHide:false}).unref();
+      if(!fs.existsSync(exe))throw Error('Painter est introuvable à son emplacement habituel. Ouvre-le manuellement.');
+      const launched=await require('./painter-launch.cjs').launchIfNeeded({connected:[...painterReceivers.values()].some(r=>Date.now()-r.seen<5000),launch:()=>spawn(exe,[],{detached:true,stdio:'ignore',windowsHide:false}).unref()});
+      log(launched.launched?'launch-painter':'reuse-running-painter');
       try{
         const result=await new Promise((resolve,reject)=>{
           const timeout=setTimeout(()=>{painterHandoff=null;reject(Error('Active le plugin Texture3D dans Painter, puis réessaie. Le FBX exporté est conservé.'));},60000);
-          painterHandoff={id:require('node:crypto').randomUUID(),fbx,projectID:body.projectID,finish(ack){clearTimeout(timeout);if(!ack.error&&ack.context)rememberPainter(body.projectID,ack.context);painterHandoff=null;ack.error?reject(Error(ack.error)):resolve(ack);}};
+          painterHandoff={id:require('node:crypto').randomUUID(),fbx,projectID:body.projectID,finish(ack){clearTimeout(timeout);if(!ack.error&&ack.context)rememberPainter(body.projectID,ack.context,ack.uuid,ack.meshSignature);painterHandoff=null;ack.error?reject(Error(ack.error)):resolve(ack);}};
         });
-        res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));
+        const imported=await deliverBlenderTexture(body,painterDestinations.get(body.projectID));
+        res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...result,...imported}));
       }catch(error){throw error;}return;
     }
     if(req.method==='POST'&&url.pathname==='/painter/blender-handoff'){
       const body=await readJSON(req);
-      if(painterHandoff&&body.ack?.id===painterHandoff.id)painterHandoff.finish(body.ack);
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({job:painterHandoff?{id:painterHandoff.id,fbx:painterHandoff.fbx,action:painterHandoff.action,projectID:painterHandoff.projectID,context:painterHandoff.context,image:painterHandoff.image}:null}));return;
+      if(typeof body.session==='string'&&body.session.length<=100){
+        painterReceivers.set(body.session,{catalogue:body.catalogue||null,seen:Date.now()});
+        for(const [id,receiver] of painterReceivers)if(Date.now()-receiver.seen>10000)painterReceivers.delete(id);
+      }
+      if(body.catalogue&&Array.isArray(body.catalogue.choices)&&body.catalogue.choices.length<=1000)painterCatalogue={...body.catalogue,seen:Date.now()};
+      if(body.catalogue?.context&&typeof body.catalogue.project==='string'&&body.catalogue.project.toLowerCase().endsWith('.spp'))for(const [id,d] of painterDestinations){if(d.context===body.catalogue.context&&d.project!==body.catalogue.project)rememberPainter(id,d.context,d.uuid,d.meshSignature,body.catalogue.project);}
+      if(painterHandoff&&body.ack?.id===painterHandoff.id&&(!painterHandoff.receiver||painterHandoff.receiver===body.session)){if(body.ack.error)painterLastError=String(body.ack.error);else{painterLastTransfer=Date.now();painterLastError=null;}painterHandoff.finish(body.ack);}
+      let deliver=!!painterHandoff;
+      if(painterHandoff&&body.session){
+        if(painterHandoff.receiver&&painterHandoff.receiver!==body.session)deliver=false;
+        if(painterHandoff.context&&body.catalogue?.context!==painterHandoff.context)deliver=false;
+        if(painterHandoff.expectedProject&&body.catalogue?.project!==painterHandoff.expectedProject)deliver=false;
+        if(!painterHandoff.context&&!painterHandoff.expectedProject&&painterHandoff.action!=='export'&&painterReceivers.size>1)deliver=false;
+        if(deliver)painterHandoff.receiver=body.session;
+      }
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({job:deliver&&painterHandoff?{id:painterHandoff.id,fbx:painterHandoff.fbx,action:painterHandoff.action,projectID:painterHandoff.projectID,context:painterHandoff.context,image:painterHandoff.image,project:painterHandoff.project,meshSignature:painterHandoff.meshSignature,sha256:painterHandoff.sha256,expectedProject:painterHandoff.expectedProject,documentName:painterHandoff.documentName,channel:painterHandoff.channel,bitDepth:painterHandoff.bitDepth,experimental:painterHandoff.experimental,textureSet:painterHandoff.textureSet,stack:painterHandoff.stack,folder:painterHandoff.folder,sceneID:painterHandoff.sceneID}:null}));return;
     }
     if(await painter.handle(req,res,url))return;
     if(req.method==='POST' && url.pathname==='/blender-bridge'){
@@ -213,7 +283,7 @@ const server=http.createServer(async(req,res)=>{
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({name,glb,count:result.count,updatedExisting:true}));return;
     }
     if(req.method==='GET' && url.pathname==='/info'){
-      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...info,textureSets:currentProject?.textureSets||[],activeDocument:currentProject?.documentName,instanceID,blenderOnline:blenderOnline(),online:Date.now()-bridgeSeen<(info.busy?30000:4000)}));return;
+      res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...info,painterOnline:[...painterReceivers.values()].some(r=>Date.now()-r.seen<5000),painterTransfer:{busy:!!painterHandoff,lastSuccess:painterLastTransfer,error:painterLastError},textureSets:currentProject?.textureSets||[],activeDocument:currentProject?.documentName,instanceID,blenderOnline:blenderOnline(),online:Date.now()-bridgeSeen<(info.busy?30000:4000)}));return;
     }
     if(req.method==='POST' && url.pathname==='/bridge'){
       const body=await readJSON(req);bridgeSeen=Date.now();

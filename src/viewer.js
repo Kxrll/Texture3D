@@ -61,9 +61,9 @@ try {
   function refreshPainterMaterial(mesh){
     if(!painterMode||!mesh.isMesh)return;
     const id=mesh.userData.textureSet;if(!id)return;
-    const base=setTextures.get(id),rough=setTextures.get(id+'/Roughness'),metal=setTextures.get(id+'/Metallic');
+    const base=setTextures.get(id),rough=setTextures.get(id+'/Roughness'),metal=setTextures.get(id+'/Metallic'),emissive=setTextures.get(id+'/Emissive');
     const previous=mesh.material;
-    mesh.material=pbrEnabled?new THREE.MeshStandardMaterial({map:base||null,roughnessMap:rough||null,metalnessMap:metal||null,roughness:rough?1:.65,metalness:metal?1:0,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide}):new THREE.MeshBasicMaterial({map:base||null,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide});
+    mesh.material=pbrEnabled?new THREE.MeshStandardMaterial({map:base||null,roughnessMap:rough||null,metalnessMap:metal||null,roughness:rough?1:.65,metalness:metal?1:0,emissiveMap:emissive||null,emissive:emissive?0xffffff:0x000000,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide}):new THREE.MeshBasicMaterial({map:base||null,color:base?0xffffff:0xc9cbd0,side:THREE.DoubleSide});
     if(pbrEnabled&&!mesh.geometry.attributes.normal)mesh.geometry.computeVertexNormals();
     previous.dispose();
   }
@@ -133,10 +133,10 @@ try {
   }
   async function applyTexture(m){
     if(m.setID){
-      const channel=m.channel||'BaseColor';const key=m.setID+(channel==='BaseColor'?'':'/'+channel);setSequences.set(key,m);const img=new Image();img.src=m.url;await img.decode();if(setSequences.get(key)!==m)return;
-      let map=setTextures.get(key);if(map&&map.userData.source===m.url)return;
+      const channel=m.channel||'BaseColor';const key=m.setID+(channel==='BaseColor'?'':'/'+channel);setSequences.set(key,m);let map=setTextures.get(key);if(map&&map.userData.source===m.url)return;const img=new Image();img.src=m.url;await img.decode();if(setSequences.get(key)!==m)return;
+      map=setTextures.get(key);
       const canvas=document.createElement('canvas');const scale=Math.min(1,renderer.capabilities.maxTextureSize/Math.max(m.width,m.height));canvas.width=Math.round(m.width*scale);canvas.height=Math.round(m.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=channel==='BaseColor'?THREE.SRGBColorSpace:THREE.NoColorSpace;next.userData.nativeSize={width:m.width,height:m.height};next.userData.source=m.url;setTextures.set(key,next);texture=next;
+      const next=new THREE.CanvasTexture(canvas);next.flipY=false;next.colorSpace=(channel==='BaseColor'||channel==='Emissive')?THREE.SRGBColorSpace:THREE.NoColorSpace;next.userData.nativeSize={width:m.width,height:m.height};next.userData.source=m.url;setTextures.set(key,next);texture=next;
       if(model)model.traverse(o=>{if(o.isMesh&&o.userData.textureSet===m.setID){if(painterMode)refreshPainterMaterial(o);else{o.material.map=next;o.material.color.set(0xffffff);o.material.needsUpdate=true;}}});if(map)map.dispose();objectTools.textureChanged(m);return;
     }
     latestSeq=m.seq;
@@ -234,6 +234,7 @@ try {
     }
   }
   renderer.setAnimationLoop(now=>{
+    if(document.hidden){lastTick=now;return;}
     const dt=Math.min((now-lastTick)/1000,0.05);lastTick=now;
     if(cameraTransition){const a=cameraTransition,t=Math.min(1,(now-a.start)/420),smooth=t*t*(3-2*t);controls.target.copy(a.target).lerp(a.endTarget,smooth);const direction=a.direction.clone().applyQuaternion(new THREE.Quaternion().identity().slerp(a.rotation,smooth));camera.position.copy(controls.target).addScaledVector(direction,THREE.MathUtils.lerp(a.distance,a.endDistance,smooth));if(t===1)cameraTransition=null;}
     else if(zoomGoal!==null){const offset=camera.position.clone().sub(controls.target),distance=offset.length(),next=THREE.MathUtils.lerp(distance,zoomGoal,1-Math.exp(-14*dt));camera.position.copy(controls.target).add(offset.setLength(next));if(Math.abs(next-zoomGoal)<zoomGoal*0.0005)zoomGoal=null;}
@@ -285,6 +286,19 @@ try {
       });
     }
 
+    const painterConnection=document.createElement('p');painterConnection.className='caption';painterConnection.id='painter-connection-status';painterConnection.setAttribute('role','status');
+    const recover=document.createElement('button');recover.id='find-painter-project';recover.textContent='Retrouver le projet Substance';
+    document.querySelector('.export-section').append(recover,painterConnection);
+    recover.onclick=async()=>{
+      recover.disabled=true;const status=document.getElementById('export-status');status.textContent='Choisis ton fichier .spp…';
+      try{
+        const headers={'X-Texture3D-Key':externalToken,'Content-Type':'application/json'};
+        const state=await(await fetch('/state',{headers})).json();
+        const response=await window.fetch('/painter-project',{method:'POST',headers,body:JSON.stringify({projectID:state.projectID,locate:true})});
+        const result=await response.json();if(!response.ok)throw Error(result.error||'Projet indisponible.');
+        status.textContent='Projet Substance retrouvé et associé. Tu peux envoyer la texture.';
+      }catch(error){status.textContent=error.message;}finally{recover.disabled=false;}
+    };
     let painterSyncToggle=null,painterSyncStatus=null;
     if(painterMode){
       const box=document.createElement('div');box.className='painter-sync';
@@ -356,6 +370,7 @@ try {
         const infoResponse=await fetch('/info',{headers:{'X-Texture3D-Key':externalToken},cache:'no-store'});
         if(!infoResponse.ok)throw Error('Connexion refusée');
         const info=await infoResponse.json();
+        painterConnection.textContent=info.painterTransfer?.error|| (info.painterTransfer?.busy?'Painter · transfert en cours':info.painterOnline?'Painter connecté'+(info.painterTransfer?.lastSuccess?' · dernier transfert il y a '+Math.max(0,Math.floor((Date.now()-info.painterTransfer.lastSuccess)/1000))+' s':''):'Painter déconnecté · ouvre Painter et son plugin Texture3D');
         if(info.instanceID&&info.instanceID!==serverInstance){serverInstance=info.instanceID;revision=-1;lastModelVersion=-1;lastTextureVersion=-1;}
         if(!exporting)document.getElementById('blender').disabled=!info.blenderOnline;
         document.getElementById('host-state').textContent=info.online?'Photoshop connecté':'Photoshop déconnecté';

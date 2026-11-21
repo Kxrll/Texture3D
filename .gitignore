@@ -33,3 +33,5 @@ installer/prepare-clean-test.py
 *.fbx
 Projets Painter/
 resource-assets/
+
+painter-storage-report*.json

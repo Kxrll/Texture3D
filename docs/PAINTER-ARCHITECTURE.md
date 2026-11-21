@@ -27,3 +27,14 @@ Texture Sets indépendants et canaux de référence : introduire des association
 Un PSD par Texture Set et canal BaseColor/Roughness/Metallic est désormais préparé explicitement depuis le panneau ; les Texture Sets utilisent leur nom d’origine pour l’identité et le nom affiché pour l’interface. Le document commun reste disponible pour Base Color. Les imports créent uniquement des ressources. Le viewer reçoit plusieurs textures par scène ; les cartes Roughness/Metallic sont marquées sans espace sRGB et le rendu Standard est activable. Ce rendu n’est pas encore validé comme équivalent à Painter.
 
 Les PNG importés sont copiés par empreinte dans resource-assets avant appel Adobe. Ces fichiers sont durables et ne doivent pas être nettoyés comme des fichiers de transport. L’historique des identifiants de jobs terminés est borné à 2048 entrées.
+
+
+## Complément Round Trip local du 20 novembre
+
+Voir [PAINTER-ROUNDTRIP.md](PAINTER-ROUNDTRIP.md) pour l’état le plus récent : bouton d’import, catalogue réel, PSD par carte/set, retour via association, reprise multiple et verrouillage. Les validations natives de cette nouvelle chaîne sont en attente de la séance utilisateur ; les mentions historiques ne valent pas validation de ces changements. Aucun benchmark nouveau ni exécution CI distante revendiqué. Les cartes avancées et masques restent exclus de l’interface faute de validation technique suffisante.
+
+
+## Modules de finalisation
+texture_export.py construit une configuration export_project_textures éphémère. image_checks.py valide le conteneur PNG et l’empreinte sans modifier les pixels. managed_layer.py recherche les UIDs des seuls calques gérés autorisés. receive-painter-texture.ps1 reçoit un payload local, valide le hash puis utilise COM pour créer un PSD ou ajouter un calque. painter-storage-report.py ne fait qu’inventorier les fichiers.
+
+Le worker receive_roundtrip ne fait aucun appel API Painter/Qt. Les réponses passent par events vers tick. Un catalogue publié par chaque récepteur permet le choix des cartes présentes ; le serveur affecte la requête au récepteur compatible, protège son bail et sérialise l’import face aux retours/auto-sync.
