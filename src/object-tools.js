@@ -27,7 +27,7 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
     clearHighlights();
     if(!selected)return;
     for(const mesh of selected.meshes){
-      const line=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry,25),new THREE.LineBasicMaterial({color:0xa55770,transparent:true,opacity:.9,depthTest:true,depthWrite:false}));
+      const line=new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x633747,transparent:true,opacity:.85,depthTest:true,depthWrite:false}));
       line.userData.texture3dSelection=true;line.renderOrder=2;mesh.add(line);highlights.push(line);
     }
   }
@@ -43,7 +43,7 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
       eye.setAttribute('aria-label',(group.meshes.some(visible)?'Masquer ':'Afficher ')+group.name);eye.setAttribute('aria-pressed',String(group.meshes.some(visible)));
       eye.onclick=()=>{const show=!group.meshes.some(visible);for(const mesh of group.meshes)mesh.visible=show;isolated=false;if(!show&&selected===group){hit=null;}renderList();drawUV();};
       const name=document.createElement('button');name.className='object-name';name.textContent=group.name;name.title=group.name;name.setAttribute('aria-pressed',String(selected===group));
-      name.onclick=()=>select(group);row.append(eye,name);list.append(row);
+      name.onclick=()=>select(selected===group?null:group);row.append(eye,name);list.append(row);
     }
     isolate.disabled=!selected;isolate.setAttribute('aria-pressed',String(isolated));
     status.textContent=selected?selected.name+(isolated?' · isolé':''):'Clique sur une pièce du modèle.';
@@ -70,13 +70,19 @@ export function createObjectTools({renderer, camera, controls, scene, enabled=tr
     const meshes=groups.flatMap(g=>g.meshes).filter(visible);
     const result=raycaster.intersectObjects(meshes,false)[0];
     if(!result){select(null);return;}
-    select(groups.find(g=>g.meshes.includes(result.object)));
+    const group=groups.find(g=>g.meshes.includes(result.object));
+    if(!uvMode&&selected===group){select(null);return;}
+    select(group);
     hit=result;zoom=1;pan={x:0,y:0};drawUV();
   }
   renderer.domElement.addEventListener('pointerdown',e=>{if(enabled&&e.button===0)down={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};});
   renderer.domElement.addEventListener('pointermove',e=>{if(down&&down.id===e.pointerId&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)down.moved=true;});
   renderer.domElement.addEventListener('pointerup',e=>{const gesture=down;down=null;if(gesture&&gesture.id===e.pointerId&&!gesture.moved)pick(e);});
   renderer.domElement.addEventListener('pointercancel',()=>{down=null;});
+  document.addEventListener('keydown',event=>{
+    if(!enabled||event.key!=='Escape'||event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+    select(null);
+  });
   function textureUV(uv,map){const value=uv.clone();if(map){map.updateMatrix();map.transformUv(value);}else value.y=1-value.y;return value;}
   function drawUV(){
     if(popup.hidden)return;

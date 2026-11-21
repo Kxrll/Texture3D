@@ -48,11 +48,11 @@ try{
  $env:T3D_FAIL=''
  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $case 'setup.ps1') -Mode Install
  Assert ($LASTEXITCODE -eq 0) 'Upgrade failed'
- Assert ((Get-Content (Join-Path $target 'installation.json') -Raw|ConvertFrom-Json).version -eq '0.8.1') 'Installed version not recorded'
+ Assert ((Get-Content (Join-Path $target 'installation.json') -Raw|ConvertFrom-Json).version -eq '1.0.0') 'Installed version not recorded'
  Assert (!(Test-Path (Join-Path $addon 'obsolete.py'))) 'Obsolete addon retained'
  Assert ((Get-Content (Join-Path $target 'personal.psd') -Raw).Trim() -eq 'paint preserved') 'Project lost'
  Assert ((Get-Content (Join-Path $target 'companion-config.json') -Raw) -eq $configBefore) 'Token changed'
- Assert ((Get-ItemProperty $reg).DisplayVersion -eq '0.8.1') 'Registry version wrong'
+ Assert ((Get-ItemProperty $reg).DisplayVersion -eq '1.0.0') 'Registry version wrong'
  Assert (Test-Path (Join-Path $menu 'Texture3D.lnk')) 'Shortcut missing'
  New-ItemProperty -Path $reg -Name DisplayVersion -Value 'previous-version' -Force|Out-Null
  $shortcutHash=(Get-FileHash (Join-Path $menu 'Texture3D.lnk')).Hash

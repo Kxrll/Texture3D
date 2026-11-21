@@ -25,7 +25,7 @@ try {
   const renderer=new THREE.WebGLRenderer({antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.setClearColor(parseInt(document.querySelector('[data-bg][aria-pressed="true"]')?.dataset.bg||'e8dcd2',16));
+  renderer.setClearColor(parseInt(document.querySelector('[data-bg][aria-pressed="true"]')?.dataset.bg||'bfa58e',16));
   document.querySelectorAll('[data-bg]').forEach(button=>button.addEventListener('click',()=>{
     renderer.setClearColor(parseInt(button.dataset.bg,16));
     document.querySelectorAll('[data-bg]').forEach(other=>other.setAttribute('aria-pressed',String(other===button)));
@@ -288,7 +288,12 @@ try {
 
     const painterConnection=document.createElement('p');painterConnection.className='caption';painterConnection.id='painter-connection-status';painterConnection.setAttribute('role','status');
     const recover=document.createElement('button');recover.id='find-painter-project';recover.textContent='Retrouver le projet Substance';
-    document.querySelector('.export-section').append(recover,painterConnection);
+    const transferSection=document.querySelector('.export-section');
+    const transferTitle=document.createElement('h2');transferTitle.className='transfer-title';transferTitle.textContent='Transferts';
+    transferSection.prepend(transferTitle);
+    const utilities=document.createElement('div');utilities.className='transfer-utilities';
+    utilities.append(document.getElementById('refresh-external'),recover);
+    transferSection.append(utilities,painterConnection,document.getElementById('export-status'));
     recover.onclick=async()=>{
       recover.disabled=true;const status=document.getElementById('export-status');status.textContent='Choisis ton fichier .spp…';
       try{

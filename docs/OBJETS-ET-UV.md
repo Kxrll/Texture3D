@@ -2,10 +2,10 @@
 
 Ces commandes sont disponibles dans le viewer Blender. Elles ne modifient pas le PSD, les UV, la scène Blender ou les textures exportées.
 
-1. Cliquer sur une pièce du modèle ou sur son nom dans **Objets** pour la sélectionner. Un glissement continue à tourner la caméra.
+1. Cliquer sur une pièce du modèle ou sur son nom dans **Objets** pour afficher le maillage de la sélection. Recliquer sur la même pièce, cliquer dans le vide ou presser Échap retire la sélection. Un glissement continue à tourner la caméra.
 2. **Isoler** masque les autres pièces et cadre la sélection. **Tout afficher** rétablit leur visibilité. Le bouton à gauche de chaque nom permet aussi de masquer une pièce individuellement.
 3. Activer **Repérer UV**, puis cliquer sur une surface du modèle. L’aperçu montre la texture, le triangle touché et le point correspondant. X et Y sont les coordonnées en pixels depuis le coin supérieur gauche, à partir de zéro.
-4. Les boutons + / − ou la molette zooment autour du point. Glisser dans l’aperçu pour le déplacer ; **Ajuster** réaffiche toute la texture.
+4. Les boutons + / − ou la molette zooment autour du point. Glisser dans l’aperçu pour le déplacer ; **Tout voir** réaffiche toute la texture.
 
 L’aperçu suit les actualisations Photoshop sans ajouter de dessin à la texture. Les coordonnées tiennent compte de la résolution originale même si le viewer réduit son aperçu pour le GPU.
 

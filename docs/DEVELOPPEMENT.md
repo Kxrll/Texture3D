@@ -17,7 +17,7 @@ La configuration locale est créée sans écraser celle qui existe. Ne pas la po
 
 ## Brancher les applications
 
-Le prototype **Painter ↔ Photoshop** possède son [guide d’installation et de test](PAINTER.md). Son plugin Painter est dans `painter_plugin/`, et ses échanges locaux dans `painter-bridge.cjs`.
+Le [guide Painter](PAINTER.md) décrit l’activation du plugin facultatif. Le plugin Python se trouve dans `painter_plugin/`, les échanges locaux dans `painter-bridge.cjs` et la récupération des projets Substance dans `companion.cjs`.
 
 Fermer Blender, puis installer l’extension depuis les sources :
 
@@ -36,13 +36,13 @@ Lancer `OUVRIR_VIEWER.vbs`, puis créer un projet depuis Blender. Les projets so
 | Sources | Rôle |
 | --- | --- |
 | `src/viewer.js` | Rendu Three.js, navigation et commandes |
-| `studio.css`, `restyle.cjs` | Apparence et génération de l’interface |
+| `studio.css`, `src/viewer.html`, `restyle.cjs` | Apparence et génération de l’interface |
 | `viewer/` | Interface compilée |
 | `companion.cjs` | Serveur local, synchronisation, transferts |
 | `main.js`, `manifest.json`, `index.html` | Plugin Photoshop UXP |
 | `prepare-photoshop-project.jsx`, `open-photoshop-project.ps1` | Préparation du PSD |
 | `blender_addon/texture3d_blender/` | Extension, matériaux, UV et projets |
-| `installer/` | Installateur C#/PowerShell, mise à jour et portable |
+| `installer/` | Installateur C#/PowerShell et mise à jour |
 | `assets/` | Icônes et modèle de démonstration |
 | `test-*`, `installer/test-*` | Tests |
 
@@ -61,9 +61,9 @@ Lancer `OUVRIR_VIEWER.vbs`, puis créer un projet depuis Blender. Les projets so
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File installer/build.ps1
 ```
 
-Le script reconstruit le viewer, prépare le CCX, embarque Node.js et compile l’installateur. Résultats dans `distribution/Texture3D-0.8.0/`.
+Le script reconstruit le viewer, prépare le CCX, embarque Node.js et compile l’installateur. Résultats dans `distribution/Texture3D-1.0.0/`.
 
-Prérequis : Windows x64, Node.js dans `C:\Program Files\nodejs\node.exe`, compilateur .NET Framework dans `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`, réseau pour télécharger la licence Node.js. La licence embarquée correspond à Node.js 22.17.1 ; adapter ce point si le moteur change. Le RAR se prépare séparément avec WinRAR.
+Prérequis : Windows x64, Node.js 22 et npm dans le PATH, et compilateur .NET Framework dans `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`. Le script télécharge la licence qui correspond au moteur Node.js embarqué.
 
 Les sauvegardes de mise à jour sont dans `%LOCALAPPDATA%\Texture3D\Recovery`. Le build crée une configuration de distribution sans recopier la clé de développement.
 
@@ -86,3 +86,5 @@ Certains tests historiques demandent Photoshop, un service actif ou une ancienne
 Avant de reprendre : `git pull --ff-only` avec un dossier de travail propre. Après les modifications : examiner `git diff`, vérifier le comportement, créer un commit et pousser. Ne jamais ajouter les clés, caches ou projets personnels.
 
 Les dépendances se réinstallent avec `npm ci`. Les sources du projet, les scripts et les ressources sont versionnés ; les dépendances tierces et les exécutables sont reconstruits ou téléchargés.
+
+Les anciens guides et comptes rendus expérimentaux sont conservés dans [les archives de développement](historique/README.md).

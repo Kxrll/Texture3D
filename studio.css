@@ -39,3 +39,75 @@ html,body{background:var(--bg)}button{border:0;border-radius:999px;background:va
 @media(max-width:700px){#uv-inspector{top:180px;right:24px;width:min(360px,calc(100vw - 48px));min-width:0;height:min(460px,calc(100vh - 210px));max-height:calc(100vh - 210px);min-height:240px}}
 
 .painter-sync{margin-top:16px;padding:12px;background:#f3eae3;border-radius:16px;font-size:12px;line-height:1.5}.painter-sync label{display:flex;align-items:center;gap:8px}.painter-sync input{accent-color:#a55770}.painter-sync .caption{margin:8px 0 0}
+
+/* Document bindings stay internal; transfers come first in the sidebar. */
+#sidebar .document-card{display:none!important}
+
+/* Transfer hierarchy and accessible contrast in the beige/rose theme. */
+#sidebar{color:#3f302f;border:1px solid #dfd0c7}
+#sidebar .export-section{display:flex;flex-direction:column;gap:10px;padding:4px 2px 18px;margin-bottom:20px;border-bottom:1px solid #dccbc2}
+#sidebar .transfer-title{margin:0 0 4px;font-size:15px;font-weight:700;letter-spacing:.01em;color:#493536}
+#sidebar .export-section button{width:100%;min-height:46px;padding:12px 15px;border-radius:16px;font-size:13px;font-weight:600;justify-content:center;line-height:1.4;box-sizing:border-box}
+#sidebar #blender,#sidebar #send-model-painter{background:#d6aea0;color:#4d302d;border:1px solid #bd9283;box-shadow:0 3px 10px #80534312}
+#sidebar #blender:hover:not(:disabled),#sidebar #send-model-painter:hover:not(:disabled){background:#c99b8d;border-color:#aa7b6d;color:#412724}
+#sidebar button:disabled{opacity:1!important;background:#eee5df!important;color:#776963!important;border-color:#ded1c9!important;box-shadow:none!important;cursor:not-allowed}
+#sidebar .transfer-utilities{display:flex;flex-direction:column;gap:8px;margin-top:4px;padding-top:14px;border-top:1px solid #e1d4cc}
+#sidebar #refresh-external,#sidebar #find-painter-project{background:#fffaf6;color:#62404a;border:1px solid #c9adaf;box-shadow:none;font-weight:600;font-size:12px}
+#sidebar #refresh-external:hover:not(:disabled),#sidebar #find-painter-project:hover:not(:disabled){background:#f3e0e4;border-color:#956373}
+#sidebar button:focus-visible,#toolbar button:focus-visible{outline:3px solid #84425c;outline-offset:3px}
+#sidebar #painter-connection-status{font-size:11px!important;line-height:1.6!important;color:#63514c!important;margin:2px 3px 0!important;overflow-wrap:anywhere}
+#sidebar #export-status:empty{display:none}
+#sidebar #export-status:not(:empty){margin:0;padding:11px 12px;border-radius:12px;background:#efe0dc;color:#613747;font-size:12px;line-height:1.6;border:1px solid #d8bfc0}
+#object-tools{background:#f0e5dd;border:1px solid #dfcec4;padding:14px;border-radius:20px}
+#object-tools summary{font-size:14px;color:#493536}#object-count{color:#6d5750}
+#sidebar .object-row button{font-size:12px;min-height:36px;color:#493735}
+#sidebar .object-name[aria-pressed=true]{background:#85445d;color:#fff}
+#sidebar .object-eye{background:#fff8f2;border:1px solid #d8c5ba;color:#6c3b4d}
+#sidebar .object-actions button,#sidebar #locate-uv{background:#fff8f2;border:1px solid #ccb5aa;color:#513c39;font-weight:600}
+#sidebar #locate-uv[aria-pressed=true],#sidebar .object-actions button[aria-pressed=true]{background:#83415b;border-color:#83415b;color:#fff}
+#sidebar #object-status{color:#66504a;font-size:11px;line-height:1.6}
+#toolbar{border:1px solid #d7c5ba;box-shadow:0 5px 24px #55403313;padding:7px;gap:4px}
+#toolbar button{color:#513c39;border-radius:13px;padding:10px 13px;font-size:12px;font-weight:600}
+#toolbar button:hover{background:#ead6d8}#toolbar button[aria-pressed=true]{background:#83415b;color:white}
+.backgrounds>span{color:#66504a;font-size:11px}
+
+#sidebar button[aria-pressed=true],#toolbar button[aria-pressed=true]{transition:none}
+
+/* Readable background palette and explicit selected state. */
+#sidebar .backgrounds span{color:#453330;font-size:12px;font-weight:650}
+#sidebar .backgrounds button{border:2px solid #aa8b7f!important;box-shadow:0 0 0 2px #fffaf6;width:28px;height:28px;min-height:28px}
+#sidebar .backgrounds button[aria-pressed=true]{border-color:#fffaf6!important;box-shadow:0 0 0 3px #83415b}
+#sidebar .backgrounds button:hover{outline:2px solid #83415b;outline-offset:4px}
+
+/* Background controls share the rounded secondary-button treatment. */
+#sidebar .appearance-section{padding:0;margin-top:auto;border-top:0}
+#sidebar .backgrounds{box-sizing:border-box;background:#ecded6;border:1px solid #ccb3a7;border-radius:18px;padding:13px 12px;gap:10px;min-height:58px}
+#sidebar .backgrounds span{color:#513b36;font-size:12px;font-weight:650;line-height:1.4}
+#sidebar .backgrounds button{flex-shrink:0;width:25px;height:25px;min-height:25px}
+
+#sidebar .backgrounds button,#sidebar .backgrounds button[aria-pressed=true],#sidebar .backgrounds button:hover{border:0!important;box-shadow:none!important;outline:none}
+
+/* Warm sand palette: darker surfaces without changing the transfer hierarchy. */
+:root{--bg:#d4c1af;--panel:#e2d2c1;--surface:#cdb7a5;--line:#b89b87;--text:#382c29;--muted:#604c42}
+#topbar,#footer{background:transparent}
+#sidebar{background:var(--panel);border-color:#bda18d;box-shadow:0 8px 36px #60432c12}
+#model-name,#host-state{background:#e5d6c6;color:#503e35}
+#toggle,.brand-mark{background:#cdb0aa}
+#sidebar button:disabled{background:#d2c2b2!important;color:#655348!important;border-color:#baa28f!important}
+#sidebar .export-section,#sidebar .transfer-utilities{border-color:#bfa590}
+#sidebar #refresh-external,#sidebar #find-painter-project{background:#ddc9b6;border-color:#ad8e7c;color:#50343d}
+#sidebar #refresh-external:hover:not(:disabled),#sidebar #find-painter-project:hover:not(:disabled){background:#cfb4aa}
+#object-tools{background:#d5bfac;border-color:#bca08b}
+#sidebar .object-eye,#sidebar .object-actions button,#sidebar #locate-uv{background:#e1cebb;border-color:#b2937c;color:#49352f}
+#sidebar .object-name[aria-pressed=true],#sidebar #locate-uv[aria-pressed=true],#sidebar .object-actions button[aria-pressed=true]{background:#83415b;color:#fff}
+#sidebar .backgrounds{background:#cbb19c;border-color:#ac8c76}
+#sidebar .backgrounds span{color:#443128}
+#toolbar,#hint,#uv-inspector{background:#dfcdbb;border-color:#b89b87}
+#toolbar button{color:#443028}
+#toolbar button:hover{background:#c9aea0}
+#uv-surface{background:#c5ad98}
+#pan-view{background:#dfcdbb;color:#793f52}
+#footer,#connection,#sidebar #object-status,#uv-status{color:#5b4438}
+
+/* Keep the Blender transfer warm even while unavailable. */
+#sidebar #blender:disabled{background:#d6aea0!important;color:#73514a!important;border-color:#bd9283!important;box-shadow:none!important}

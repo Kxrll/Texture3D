@@ -1,61 +1,49 @@
 <div align="center">
 
-# Texture3D
+# Texture3D Studio
 
-**Blender pour le modèle. Photoshop pour la peinture.**
+**Peindre dans Photoshop, voir le résultat sur le modèle 3D.**
 
-Un outil pour peindre des textures dans Photoshop et visualiser le résultat sur un modèle 3D dans une fenêtre séparée.
+[Télécharger Texture3D Studio 1.0](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) · [Substance 3D Painter](docs/PAINTER.md)
 
-[Télécharger](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) 
-
-![Le viewer Texture3D](docs/viewer.png)
+![Le viewer Texture3D Studio 1.0](docs/viewer.png)
 
 </div>
 
-## Comment ça marche
+## De Blender à Photoshop
 
-Le travail commence dans Blender, sur un modèle dont les UV sont déjà préparés. Le bouton **Peindre dans Photoshop** prépare le document et ouvre le viewer. Ensuite, chaque **Ctrl + S** dans Photoshop actualise la texture sur le modèle.
+1. Dans Blender, préparer les UV, sélectionner le modèle et cliquer sur **Texture3D → Peindre dans Photoshop**.
+2. Peindre dans le document Photoshop commun. Chaque **Ctrl + S** actualise la texture dans le viewer, qui peut rester ouvert sur un deuxième écran.
+3. Utiliser **Envoyer dans Blender** pour appliquer la texture dans la scène ouverte, ou **Envoyer dans Painter** pour l’appliquer à la **Base Color** dans Substance 3D Painter.
 
-Le bouton **Envoyer dans Blender** applique ensuite la texture à la scène ouverte.
+Texture3D garde les UV d’origine et exclut les guides du rendu. Dans le viewer, cliquer sur une pièce affiche son maillage. Il est aussi possible de l’isoler ou de [repérer la zone à peindre sur les UV](docs/OBJETS-ET-UV.md).
 
-- Tous les objets sélectionnés sur **un même document Photoshop**.
-- Les UV d’origine conservés, sans nouveau dépliage ni compactage automatique.
-- Des guides UV noirs, exclus de la texture envoyée.
-- Une fenêtre 3D séparée pour travailler sur deux écrans.
-- Rotation, zoom, déplacement, gizmo et affichage du maillage.
+Les UV doivent tenir dans le carré 0–1. Les îlots superposés partagent la peinture sur le document commun.
 
 ## Installation
 
-**Windows 64 bits · Blender · Photoshop · Adobe Creative Cloud Desktop · Edge**
+**Windows x64 · Blender · Photoshop · Adobe Creative Cloud Desktop · Microsoft Edge**
 
-Testé avec Blender 5.1 et Photoshop 27.11. Versions minimales déclarées : Blender 4.2 et Photoshop 26.
+Les versions minimales déclarées sont Blender 4.2 et Photoshop 26.
 
-1. Télécharge **Texture3D-Setup-0.8.0.exe** dans [la release](https://github.com/Kxrll/Texture3D/releases/tag/v0.8.0).
-2. Ferme Blender et Photoshop, puis lance l’installateur.
-3. Ouvre Blender, sélectionne ton modèle et retrouve **Texture3D** dans la barre latérale avec **N**.
-
-Si une ancienne version est installée, lance directement le nouvel installateur. Il remplace l’application au même emplacement et conserve tes projets. Pas besoin de désinstaller avant.
+1. Télécharger **Texture3D-Setup-1.0.0.exe** dans la [release officielle](https://github.com/Kxrll/Texture3D/releases/tag/v1.0.0).
+2. Fermer Blender et Photoshop, puis lancer l’installateur.
+3. Dans Blender, ouvrir la barre latérale avec **N** et choisir **Texture3D**.
 
 <details>
 <summary>Voir l’installateur</summary>
 
-![Installateur Texture3D](docs/installer.png)
+![Installateur Texture3D Studio 1.0](docs/installer.png)
 
 </details>
 
-La release contient aussi une **version portable** et un **pack RAR avec les deux versions**. Le plugin Photoshop reste nécessaire en portable. Le [guide](installer/LISEZ-MOI-RELEASE.txt) explique les étapes et le fonctionnement sans droits administrateur. L’exécutable n’est pas signé ; les règles du PC ou d’Adobe peuvent bloquer son installation.
+Pour mettre à jour une installation existante, lancer directement le nouveau programme d’installation. Il reprend le même emplacement et conserve les projets. L’installation se fait dans le compte Windows courant. Les règles Windows ou Adobe peuvent bloquer l’exécutable non signé ou l’installation du plugin.
 
-## À savoir
+Pour utiliser Substance, [activer le plugin Painter fourni](docs/PAINTER.md). Après le premier envoi, enregistrer le projet en `.spp`. Le viewer permet ensuite de le reprendre avec **Retrouver le projet Substance**.
 
-Les UV doivent être prêts dans Blender et rester dans le carré 0–1. Des UV superposés partagent la même peinture sur le document commun. L’outil ne déplace pas les îlots pour les séparer.
+## Code source
 
-Les anciens projets utilisant le premier système d’atlas ne sont pas convertis automatiquement : il peut être nécessaire de créer un nouveau projet Texture3D. Garde tes anciens PSD et fichiers Blender.
-
-## Le code source
-
-Les sources de développement incluent maintenant le parcours **Substance 3D Painter ↔ Photoshop**, avec un document commun, le modèle complet dans le viewer et le retour de la peinture comme ressource Texture. Voir le [guide Painter](docs/PAINTER.md) et le [détail des modifications](MODIFICATIONS-PAINTER-PHOTOSHOP.txt). Ces ajouts ne sont pas encore inclus dans les exécutables de la release 0.8.0.
-
-Tout le code est ici : viewer, service local, plugin Photoshop, extension Blender, installateur et tests. Les exécutables sont dans les releases ; les projets personnels et les clés locales ne sont pas dans Git.
+Le dépôt contient le viewer, le service local, les plugins Blender, Photoshop et Painter, l’installateur et les tests. Les archives **Source code** de la release correspondent à la version publiée.
 
 ```powershell
 git clone https://github.com/Kxrll/Texture3D.git
@@ -63,12 +51,6 @@ cd Texture3D
 npm ci
 node init-config.cjs
 npm run build
-npm run check
 ```
 
-Pour brancher les applications aux sources, reconstruire l’installateur ou reprendre sur un autre ordinateur : **[guide de développement](docs/DEVELOPPEMENT.md)**.
-
-## Un souci ?
-
-Ouvre une [issue](https://github.com/Kxrll/Texture3D/issues) avec les versions de Blender et Photoshop, ce que tu faisais et le message d’erreur. Une capture aide aussi.
-
+Le [guide de développement](docs/DEVELOPPEMENT.md) explique comment brancher les applications, tester et reconstruire l’installateur. Pour signaler un problème, ouvrir une [issue](https://github.com/Kxrll/Texture3D/issues) avec les versions des applications et les étapes pour le reproduire.

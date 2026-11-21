@@ -13,7 +13,6 @@ let commandResults={};
 let targetBlender=null,returnID=0;
 const blenderClients=new Map(),returns=new Map();
 let painterHandoff=null;
-let painterCatalogue=null;
 const painterReceivers=new Map();
 let painterLastTransfer=null,painterLastError=null;
 const painterDestinations=new Map();
@@ -203,7 +202,6 @@ const server=http.createServer(async(req,res)=>{
         painterReceivers.set(body.session,{catalogue:body.catalogue||null,seen:Date.now()});
         for(const [id,receiver] of painterReceivers)if(Date.now()-receiver.seen>10000)painterReceivers.delete(id);
       }
-      if(body.catalogue&&Array.isArray(body.catalogue.choices)&&body.catalogue.choices.length<=1000)painterCatalogue={...body.catalogue,seen:Date.now()};
       if(body.catalogue?.context&&typeof body.catalogue.project==='string'&&body.catalogue.project.toLowerCase().endsWith('.spp'))for(const [id,d] of painterDestinations){if(d.context===body.catalogue.context&&d.project!==body.catalogue.project)rememberPainter(id,d.context,d.uuid,d.meshSignature,body.catalogue.project);}
       if(painterHandoff&&body.ack?.id===painterHandoff.id&&(!painterHandoff.receiver||painterHandoff.receiver===body.session)){if(body.ack.error)painterLastError=String(body.ack.error);else{painterLastTransfer=Date.now();painterLastError=null;}painterHandoff.finish(body.ack);}
       let deliver=!!painterHandoff;

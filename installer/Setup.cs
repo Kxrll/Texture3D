@@ -9,8 +9,8 @@ using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-[assembly: AssemblyVersion("0.8.1.0")]
-[assembly: AssemblyFileVersion("0.8.1.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: AssemblyProduct("Texture3D Studio")]
 [assembly: AssemblyTitle("Installation Texture3D")]
 class SoftButton:Button {
@@ -28,7 +28,7 @@ class Installer:Form {
  Panel progress; int percent; bool working,ready,completed; string chosen="";string error="";
  public Installer(string dir,bool isPreview){folder=dir;preview=isPreview;Text="Texture3D · Installation";ClientSize=new Size(560,360);MinimumSize=MaximumSize=Size;FormBorderStyle=FormBorderStyle.FixedSingle;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;BackColor=Color.FromArgb(246,238,232);Font=new Font("Segoe UI",10);ForeColor=ink;AutoScaleMode=AutoScaleMode.Dpi;DoubleBuffered=true;
  try{Icon=new Icon(Path.Combine(dir,"app","assets","texture3d.ico"));}catch{}
- Label brand=LabelAt("texture3D",38,28,450,45,23,true);version=LabelAt("STUDIO  /  0.8.1 BÊTA",610,42,180,24,10,false);version.ForeColor=muted;
+ Label brand=LabelAt("texture3D",38,28,450,45,23,true);version=LabelAt("STUDIO  /  1.0.0",610,42,180,24,10,false);version.ForeColor=muted;
  title=LabelAt("Un nouvel espace pour peindre.",38,102,744,50,25,true);
  description=LabelAt("Ton modèle dans Blender. Ta peinture dans Photoshop.\nEt le résultat, juste à côté.",40,165,720,57,12,false);description.ForeColor=muted;
  blender=LabelAt("Recherche de Blender…",60,254,690,52,11,true);
@@ -47,11 +47,11 @@ class Installer:Form {
  async void Inspect(){working=true;action.Enabled=false;choose.Enabled=false;try{string json=await Task.Run(()=>Run("Inspect",false));var data=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(json);var list=(System.Collections.ArrayList)data["blenders"];bool installed=(bool)data["installed"];title.Text=installed?"Ton studio, à jour.":"Un nouvel espace pour peindre.";description.Text=installed?"La nouvelle version remplace l’ancienne.\nTes projets et tes peintures restent à leur place.":"Ton modèle dans Blender. Ta peinture dans Photoshop.\nEt le résultat, juste à côté.";
  blender.Text=list.Count>0?"BLENDER  ·  Détecté\n"+(chosen.Length>0?chosen:list[0].ToString()):"BLENDER  ·  À sélectionner";
  photoshop.Text=(bool)data["photoshop"]&&(bool)data["adobe"]?"PHOTOSHOP  ·  Détecté\nPlugin installé via Adobe Creative Cloud":"PHOTOSHOP  ·  Vérification nécessaire\nPhotoshop et Creative Cloud Desktop sont requis";
- destination.Text=""+(installed?"Version "+(data["previousVersion"]??"précédente")+" → 0.8.1":"Version 0.8.1")+"\n"+data["target"];
+ destination.Text=""+(installed?"Version "+(data["previousVersion"]??"précédente")+" → 1.0.0":"Version 1.0.0")+"\n"+data["target"];
  ready=list.Count>0&&(bool)data["photoshop"]&&(bool)data["adobe"];state.Text="Ferme Blender et Photoshop avant de continuer.";action.Text=installed?"Mettre à jour Texture3D":"Installer Texture3D";
  }catch(Exception ex){state.Text=ex.Message;ready=false;}finally{working=false;choose.Enabled=true;action.Enabled=ready;}}
  async void Install(){working=true;error="";action.Enabled=false;choose.Enabled=false;logLink.Visible=true;action.Text="Installation en cours…";try{await Task.Run(()=>Run("Install",true));completed=true;title.Text="Tout est prêt.";description.Text="Ouvre Blender, sélectionne ton modèle et retrouve\nTexture3D dans la barre latérale avec la touche N.";action.Text="C’est parti";percent=100;progress.Invalidate();}catch(Exception ex){title.Text="On reprend ici.";state.Text=ex.Message;action.Text="Réessayer";}finally{working=false;action.Enabled=true;choose.Enabled=!completed;}}
- public void ApplyPreview(){title.Text="Ton studio, à jour.";description.Text="La nouvelle version remplace l’ancienne.\nTes projets et tes peintures restent à leur place.";blender.Text="BLENDER  ·  Détecté\nBlender 5.1";photoshop.Text="PHOTOSHOP  ·  Détecté\nPlugin installé via Adobe Creative Cloud";destination.Text="Version 0.6.0 → 0.8.1\nMême emplacement, mêmes raccourcis.";state.Text="Ferme Blender et Photoshop avant de continuer.";action.Text="Mettre à jour Texture3D";action.Enabled=true;}
+ public void ApplyPreview(){title.Text="Ton studio, à jour.";description.Text="La nouvelle version remplace l’ancienne.\nTes projets et tes peintures restent à leur place.";blender.Text="BLENDER  ·  Détecté\nBlender 5.1";photoshop.Text="PHOTOSHOP  ·  Détecté\nPlugin installé via Adobe Creative Cloud";destination.Text="Version 0.6.0 → 1.0.0\nMême emplacement, mêmes raccourcis.";state.Text="Ferme Blender et Photoshop avant de continuer.";action.Text="Mettre à jour Texture3D";action.Enabled=true;}
 }
 class Setup {
  [STAThread] static int Main(string[] args){Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);string dir=Path.Combine(Path.GetTempPath(),"Texture3D-Setup-"+Guid.NewGuid().ToString("N"));System.Threading.Mutex mutex=null;try{

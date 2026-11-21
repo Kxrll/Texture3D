@@ -344,7 +344,7 @@ class Panel(QtWidgets.QWidget):
 
     def tick(self):
         try:
-            self.catalogue = {'uuid':str(sp.project.get_uuid()),'context':texture_export.context_id(sp),'project':str(Path(sp.project.file_path()).resolve()) if sp.project.file_path() else None,'choices':texture_export.available(sp,experimental=True)} if sp.project.is_open() else None
+            self.catalogue = {'uuid':str(sp.project.get_uuid()),'context':texture_export.context_id(sp),'project':str(Path(sp.project.file_path()).resolve()) if sp.project.file_path() else None} if sp.project.is_open() else None
         except Exception:
             self.catalogue = None
         if not self.handoff_running and not self.stopped.is_set():
@@ -352,17 +352,7 @@ class Panel(QtWidgets.QWidget):
             threading.Thread(target=self.poll_handoff, daemon=True).start()
         while not self.events.empty():
             kind, value = self.events.get_nowait()
-            if kind == 'roundtrip-complete':
-                root,config,project_folder,metadata,ack = value
-                self.bindings[metadata['project_id']] = metadata
-                self.watch_documents[project_folder/metadata['document']] = None
-                self.root,self.config = root,config
-                self.handoff_ack = ack
-                self.status.setText('Carte Painter reçue dans Photoshop, sans écraser les calques.')
-            elif kind == 'roundtrip-error':
-                self.handoff_ack = value
-                self.status.setText(value['error'])
-            elif kind == 'handoff':
+            if kind == 'handoff':
                 root, job = value
                 if job['id'] in self.handoff_seen: continue
                 self.handoff_seen.add(job['id'])

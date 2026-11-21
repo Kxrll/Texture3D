@@ -1,52 +1,27 @@
-﻿TEXTURE3D STUDIO — VERSION 0.8.1 BÊTA 1
+TEXTURE3D STUDIO 1.0 — INSTALLATION WINDOWS
 
-INSTALLER OU METTRE À JOUR
-1. Enregistre ton travail, puis ferme Blender et Photoshop.
-2. Lance Texture3D-Setup-0.8.1-beta.1.exe.
-3. Vérifie les logiciels détectés et clique sur Installer ou Mettre à jour.
-4. Ouvre Blender. Sélectionne ton modèle avec ses UV et ouvre Texture3D
-   dans la barre latérale (touche N). Lance Peindre dans Photoshop.
+1. Fermer Blender et Photoshop.
+2. Lancer Texture3D-Setup-1.0.0.exe. L’installateur détecte les applications
+   et installe le plugin Photoshop via Adobe Creative Cloud Desktop.
+3. Dans Blender, sélectionner le modèle, ouvrir le panneau latéral avec N,
+   puis choisir Texture3D > Peindre dans Photoshop.
+4. Enregistrer dans Photoshop avec Ctrl + S pour mettre à jour le viewer.
 
-Une ancienne installation réalisée avec notre installateur est remplacée
-au même emplacement. Il ne faut pas la désinstaller avant. Le plugin
-Photoshop garde le même identifiant et Blender le même module.
-Les profils Blender existants sont mis à jour ; l'extension est activée
-pour les versions de Blender détectées sur ce PC.
-Les projets, PSD et fichiers personnels sont conservés. Une sauvegarde
-reste dans %LOCALAPPDATA%\Texture3D\Recovery en cas de besoin.
-Elle n'est ni enregistrée comme application, ni lancée automatiquement.
+Pour mettre à jour une ancienne version, relancer l’installateur au même
+emplacement. Les projets et la configuration locale sont conservés.
+L’installation est faite dans le compte Windows courant. L’exécutable
+n’est pas signé et les règles Windows ou Adobe peuvent en limiter l’usage.
 
-L'installation est personnelle, dans %LOCALAPPDATA%\Programs\Texture3D.
-Node.js est inclus : aucune installation séparée n'est nécessaire.
-L'installateur ne demande pas d'élévation administrateur. Les règles de
-sécurité du PC ou d'Adobe peuvent néanmoins empêcher l'installation.
-Le fichier n'est pas signé avec un certificat commercial.
+SUBSTANCE 3D PAINTER (FACULTATIF)
 
-VERSION PORTABLE
-Extrais Texture3D-Portable-0.8.1-beta.1.zip dans un dossier où tu peux écrire.
-Installe le CCX du sous-dossier distribution avec Creative Cloud, puis
-lance LANCER_BLENDER_PORTABLE.vbs. L'extension Blender est chargée pour
-cette session. Le plugin Photoshop nécessite toujours l'installation Adobe.
-Ne lance pas la version portable et l'installation normale en même temps :
-elles utilisent le même plugin Photoshop et le même port local.
-Pour remplacer une ancienne version portable, utilise un nouveau dossier,
-conserve tes projets et réinstalle son CCX. L'installateur ne remplace pas
-les dossiers portables ou les plugins chargés dans UXP Developer Tool.
-Désactive une ancienne copie de développement dans UXP Developer Tool.
+Le plugin Painter est fourni dans le dossier installé. Pour l’activer,
+ouvrir Python > Plugins Folder dans Painter et copier le chemin. Fermer
+Painter, puis lancer depuis PowerShell :
 
-PEINDRE
-Tous les objets sélectionnés partagent un même document Photoshop.
-Les UV existants sont conservés. Ils ne sont ni redépliés, ni compactés.
-Des UV superposés partagent donc la même peinture.
-Les traits UV sont noirs et exclus de la texture affichée et renvoyée.
-Ctrl+S met à jour le viewer ; Envoyer dans Blender applique la peinture
-à la scène ouverte. Enregistre aussi ton fichier .blend.
-Un ancien projet créé avec l'ancien atlas peut nécessiter un nouveau
-projet Texture3D ; l'installateur ne transforme pas ses UV ni son PSD.
+Set-Location (Join-Path $env:LOCALAPPDATA 'Programs\Texture3D')
+powershell.exe -NoProfile -File .\INSTALLER_PAINTER.ps1 -PluginsDirectory "CHEMIN\python\plugins"
 
-SI L'INSTALLATION ÉCHOUE
-Lis le message dans la fenêtre et ouvre Consulter le journal.
-Le journal est dans %TEMP%\Texture3D-installation.log.
-L'installateur tente de restaurer l'ancienne application et les extensions.
-Une restauration Adobe refusée est signalée explicitement : conserve
-le journal et la sauvegarde, puis relance après résolution du problème.
+Relancer Painter. Si nécessaire, activer Python > texture3d_painter.
+Enregistrer le projet Substance au format .spp pour le reprendre ensuite.
+
+Guide, sources et assistance : https://github.com/Kxrll/Texture3D

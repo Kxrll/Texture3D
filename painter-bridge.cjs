@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 module.exports=function createPainterBridge(root,{readJSON,queueDocument,openViewer,queueCommand,getInfo}){
   const bindings=new Map(),clients=new Map(),jobs=new Map(),saveRefreshes=new Set();
-  let activeDocument=null,roundtripBusy=false;
+  let activeDocument=null;
   let model=null,texture=null,revision=0,modelVersion=0,textureVersion=0;
   const online=b=>b&&Date.now()-(clients.get(b.session)||0)<10000;
   function binding(documentName){
@@ -39,7 +39,7 @@ module.exports=function createPainterBridge(root,{readJSON,queueDocument,openVie
         return {imported:true,resourceName:name,updated:!!result.updated};
   }
   async function drain(b){
-    if(roundtripBusy||b.autoRunning||!b.autoEnabled||!b.pending)return;
+    if(b.autoRunning||!b.autoEnabled||!b.pending)return;
     if(!online(b)||bindings.get(b.documentName)!==b||activeDocument!==b.documentName){b.pending=null;b.syncError='Liaison inactive : réactive la synchronisation après reconnexion.';return;}
     if([...jobs.values()].some(j=>j.projectID===b.projectID)){b.autoTimer=setTimeout(()=>drain(b),300);return;}
     const message=b.pending;b.pending=null;b.autoRunning=true;b.syncError=null;
@@ -51,8 +51,6 @@ module.exports=function createPainterBridge(root,{readJSON,queueDocument,openVie
   return {
     get activeDocument(){return activeDocument;},
     association(name){return bindings.get(name);},
-    beginRoundtrip(){if(roundtripBusy||jobs.size)throw Error('Un transfert Painter est déjà en cours.');roundtripBusy=true;for(const b of bindings.values()){b.pending=null;clearTimeout(b.autoTimer);}},
-    endRoundtrip(){roundtripBusy=false;},
     deactivate(){activeDocument=null;},
     ownsDocument(name){return bindings.has(name);},
     capture(message){
@@ -140,7 +138,6 @@ module.exports=function createPainterBridge(root,{readJSON,queueDocument,openVie
         res.end(JSON.stringify({projectID:b.projectID,textureSet:b.textureSet}));return true;
       }
       if(url.pathname==='/painter/return'){
-        if(roundtripBusy)throw Error('Un import depuis Painter est en cours. Attends sa confirmation.');
         const result=await transfer(binding(body.documentName),body);
         res.end(JSON.stringify(result));
         return true;
