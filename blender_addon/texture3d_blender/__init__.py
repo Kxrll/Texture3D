@@ -1,6 +1,6 @@
 bl_info = {
     'name': 'Texture3D — Peindre dans Photoshop', 'author': 'Texture3D',
-    'version': (1, 0, 0), 'blender': (4, 2, 0),
+    'version': (1, 0, 1), 'blender': (4, 2, 0),
     'location': 'Vue 3D > Barre latérale (N) > Texture3D', 'category': 'Paint',
 }
 

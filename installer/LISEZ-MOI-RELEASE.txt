@@ -1,7 +1,7 @@
-TEXTURE3D STUDIO 1.0 — INSTALLATION WINDOWS
+﻿TEXTURE3D STUDIO 1.0.1 — INSTALLATION WINDOWS
 
 1. Fermer Blender et Photoshop.
-2. Lancer Texture3D-Setup-1.0.0.exe. L’installateur détecte les applications
+2. Lancer Texture3D-Setup-1.0.1.exe. L’installateur détecte les applications
    et installe le plugin Photoshop via Adobe Creative Cloud Desktop.
 3. Dans Blender, sélectionner le modèle, ouvrir le panneau latéral avec N,
    puis choisir Texture3D > Peindre dans Photoshop.
@@ -14,9 +14,12 @@ n’est pas signé et les règles Windows ou Adobe peuvent en limiter l’usage.
 
 SUBSTANCE 3D PAINTER (FACULTATIF)
 
-Le plugin Painter est fourni dans le dossier installé. Pour l’activer,
-ouvrir Python > Plugins Folder dans Painter et copier le chemin. Fermer
-Painter, puis lancer depuis PowerShell :
+Si Painter est détecté, son plugin est installé pour ce compte Windows.
+Il se charge à la prochaine ouverture de Painter.
+
+Si Painter a été installé après Texture3D, relancer l’installateur ou
+ouvrir Python > Plugins Folder et copier le chemin. Fermer Painter,
+puis exécuter depuis PowerShell :
 
 Set-Location (Join-Path $env:LOCALAPPDATA 'Programs\Texture3D')
 powershell.exe -NoProfile -File .\INSTALLER_PAINTER.ps1 -PluginsDirectory "CHEMIN\python\plugins"

@@ -1,6 +1,12 @@
 # Envoyer une texture dans Substance 3D Painter
 
-## Activer le plugin
+## Charger le plugin
+
+Si Painter est détecté, l’installateur Texture3D installe le plugin pour le compte Windows courant. Ouvrir ou relancer Painter pour le charger automatiquement.
+
+### Installation manuelle
+
+Pour Texture3D Studio 1.0.0, une installation de Painter non détectée ou un environnement de développement, utiliser le script fourni.
 
 1. Dans Painter, ouvrir **Python → Plugins Folder** et copier le chemin du dossier `plugins`.
 2. Fermer Painter, puis exécuter dans PowerShell en remplaçant le chemin d’exemple.

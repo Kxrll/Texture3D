@@ -26,6 +26,8 @@ try {
  & $upia /remove 'Texture3D Studio'
  if($LASTEXITCODE -ne 0){throw 'Adobe n''a pas retiré le plugin. Retire Texture3D Studio dans Creative Cloud, puis relance la désinstallation.'}
  Get-CimInstance Win32_Process -Filter "name='node.exe'" | Where-Object { $_.ExecutablePath -eq (Join-Path $root 'runtime\node.exe') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+ try{& (Join-Path $root 'INSTALLER_PAINTER.ps1') -Remove}
+ catch{[System.Windows.Forms.MessageBox]::Show(('Le plugin Painter doit être retiré manuellement : '+$_.Exception.Message),'Texture3D','OK','Warning')|Out-Null}
  $files=Get-Content (Join-Path $root 'package-files.json') -Raw | ConvertFrom-Json
  foreach($relative in $files){$file=[IO.Path]::GetFullPath((Join-Path $root $relative));if(!$file.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Chemin invalide.'};if(Test-Path -LiteralPath $file){Remove-Item -LiteralPath $file -Force}}
  Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Programs')) 'Texture3D.lnk') -ErrorAction SilentlyContinue

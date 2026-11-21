@@ -61,7 +61,7 @@ Lancer `OUVRIR_VIEWER.vbs`, puis créer un projet depuis Blender. Les projets so
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File installer/build.ps1
 ```
 
-Le script reconstruit le viewer, prépare le CCX, embarque Node.js et compile l’installateur. Résultats dans `distribution/Texture3D-1.0.0/`.
+Le script reconstruit le viewer, prépare le CCX, embarque Node.js et compile l’installateur. Résultats dans `distribution/Texture3D-1.0.1/`.
 
 Prérequis : Windows x64, Node.js 22 et npm dans le PATH, et compilateur .NET Framework dans `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`. Le script télécharge la licence qui correspond au moteur Node.js embarqué.
 

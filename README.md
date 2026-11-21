@@ -4,7 +4,7 @@
 
 **Peindre dans Photoshop, voir le résultat sur le modèle 3D.**
 
-[Télécharger Texture3D Studio 1.0](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) · [Substance 3D Painter](docs/PAINTER.md)
+[Télécharger Texture3D Studio 1.0.1](https://github.com/Kxrll/Texture3D/releases/latest) · [Installation](#installation) · [Substance 3D Painter](docs/PAINTER.md)
 
 ![Le viewer Texture3D Studio 1.0](docs/viewer.png)
 
@@ -26,20 +26,20 @@ Les UV doivent tenir dans le carré 0–1. Les îlots superposés partagent la p
 
 Les versions minimales déclarées sont Blender 4.2 et Photoshop 26.
 
-1. Télécharger **Texture3D-Setup-1.0.0.exe** dans la [release officielle](https://github.com/Kxrll/Texture3D/releases/tag/v1.0.0).
+1. Télécharger **Texture3D-Setup-1.0.1.exe** dans la [release officielle](https://github.com/Kxrll/Texture3D/releases/tag/v1.0.1).
 2. Fermer Blender et Photoshop, puis lancer l’installateur.
 3. Dans Blender, ouvrir la barre latérale avec **N** et choisir **Texture3D**.
 
 <details>
 <summary>Voir l’installateur</summary>
 
-![Installateur Texture3D Studio 1.0](docs/installer.png)
+![Installateur Texture3D Studio 1.0.1](docs/installer.png)
 
 </details>
 
 Pour mettre à jour une installation existante, lancer directement le nouveau programme d’installation. Il reprend le même emplacement et conserve les projets. L’installation se fait dans le compte Windows courant. Les règles Windows ou Adobe peuvent bloquer l’exécutable non signé ou l’installation du plugin.
 
-Pour utiliser Substance, [activer le plugin Painter fourni](docs/PAINTER.md). Après le premier envoi, enregistrer le projet en `.spp`. Le viewer permet ensuite de le reprendre avec **Retrouver le projet Substance**.
+Quand Substance 3D Painter est détecté, l’installateur prépare aussi son plugin. Il se charge au prochain lancement de Painter. [Voir le guide Painter](docs/PAINTER.md). Après le premier envoi, enregistrer le projet en `.spp`. Le viewer permet ensuite de le reprendre avec **Retrouver le projet Substance**.
 
 ## Code source
 
