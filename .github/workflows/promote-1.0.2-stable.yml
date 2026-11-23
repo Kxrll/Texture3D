@@ -1,0 +1,76 @@
+name: Publier Texture3D Studio 1.0.2 stable
+on:
+  push:
+    branches:
+      - release/publish-1.0.2
+permissions:
+  contents: write
+jobs:
+  promote:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valider la source et les tests de la bêta
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $expectedCommit = '891d927d93fe51c2af68002c1de1f46a939294ed'
+          $tag = gh api repos/Kxrll/Texture3D/git/ref/tags/v1.0.2-beta.1 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $tag.object.sha -ne $expectedCommit) {
+            throw 'La bêta ne pointe pas sur le commit attendu.'
+          }
+          $run = gh api repos/Kxrll/Texture3D/actions/runs/45150423329 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.conclusion -ne 'success' -or $run.head_sha -ne $expectedCommit) {
+            throw 'La construction et les tests de la bêta ne sont pas validés.'
+          }
+      - name: Publier les binaires exacts de la bêta comme release stable
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expectedHash = '31fda55efe62082fed7205bca22b9a8f7df726a0ee1b41ac6c01b41f36ad8b9e'
+          $tag = 'v1.0.2'
+          $dir = Join-Path $env:RUNNER_TEMP 'Texture3D-1.0.2-official'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          gh release download v1.0.2-beta.1 --repo Kxrll/Texture3D --pattern 'Texture3D-Setup-1.0.2-beta.1.exe' --dir $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Telechargement de la bêta impossible.' }
+          $source = Join-Path $dir 'Texture3D-Setup-1.0.2-beta.1.exe'
+          $actualHash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) { throw 'Empreinte SHA256 differente de la bêta validee.' }
+          $stable = Join-Path $dir 'Texture3D-Setup-1.0.2.exe'
+          Move-Item -LiteralPath $source -Destination $stable
+          $checksums = Join-Path $dir 'SHA256SUMS.txt'
+          "$actualHash  Texture3D-Setup-1.0.2.exe" | Set-Content -LiteralPath $checksums -Encoding ascii
+          $notes = Join-Path $dir 'RELEASE-NOTES.md'
+          @(
+            '# Texture3D Studio 1.0.2 — version stable'
+            ''
+            'Cette version officielle reprend **exactement le binaire de la bêta 1.0.2-beta.1**, dont la mise à jour a été testée avec succès sur le poste initialement affecté.'
+            ''
+            '## Correction de mise à jour'
+            '- Un journal PowerShell unique est utilisé pour chaque installation.'
+            '- Si le dossier temporaire est inaccessible, un second emplacement est essayé.'
+            '- La mise à jour peut se poursuivre même si la transcription du journal est impossible, sans désactiver les contrôles et la restauration.'
+            '- Le bouton « Consulter le journal » affiche le fichier effectivement utilisé.'
+            ''
+            'Les tests automatisés Windows et la construction de la bêta ont réussi.'
+            ''
+            '## Installation'
+            'Télécharger **Texture3D-Setup-1.0.2.exe**, fermer Blender et Photoshop, puis exécuter la mise à jour.'
+            'Les fonctions et les projets existants sont conservés par le mécanisme de mise à jour.'
+            ''
+            'Le fichier **SHA256SUMS.txt** permet de vérifier le binaire téléchargé.'
+            'Le programme Windows est non signé.'
+          ) | Set-Content -LiteralPath $notes -Encoding utf8
+          $already = gh release view $tag --repo Kxrll/Texture3D --json tagName --jq '.tagName' 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'La version officielle existe deja : ne pas ecraser une release.' }
+          gh release create $tag $stable $checksums --repo Kxrll/Texture3D --target 891d927d93fe51c2af68002c1de1f46a939294ed --title 'Texture3D Studio 1.0.2' --notes-file $notes --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Publication officielle echouee.' }
+          $release = gh release view $tag --repo Kxrll/Texture3D --json tagName,isPrerelease,isDraft,url | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.isPrerelease -or $release.isDraft) {
+            throw 'La release officielle n est pas publiee avec le bon statut.'
+          }
+          Write-Output ("RELEASE_OK=" + $release.url)
