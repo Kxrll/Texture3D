@@ -4,8 +4,10 @@ $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
 . (Join-Path $PSScriptRoot 'files.ps1')
+. (Join-Path $PSScriptRoot 'transcript.ps1')
 $target=Join-Path $env:LOCALAPPDATA 'Programs\Texture3D'
-$log=Join-Path $env:TEMP 'Texture3D-installation.log'
+$log=$null
+$transcriptStarted=$false
 function Progress($percent,$message){Write-Output "T3D|$percent|$message"}
 function Detect {
  $candidates=@()
@@ -24,7 +26,7 @@ function Detect {
  $upia=Join-Path $env:CommonProgramFiles 'Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe'
  $psReady=Test-Path 'Registry::HKEY_CLASSES_ROOT\Photoshop.Application'
  $version=(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture3D' -ErrorAction SilentlyContinue).DisplayVersion
- return @{blenders=@($found|ForEach-Object {$_.FullName});photoshop=$psReady;adobe=(Test-Path -LiteralPath $upia);upia=$upia;installed=(Test-Path -LiteralPath $target);previousVersion=$version;target=$target;version='1.0.1';running=@(Get-Process blender,Photoshop -ErrorAction SilentlyContinue|Select-Object -ExpandProperty ProcessName -Unique)}
+ return @{blenders=@($found|ForEach-Object {$_.FullName});photoshop=$psReady;adobe=(Test-Path -LiteralPath $upia);upia=$upia;installed=(Test-Path -LiteralPath $target);previousVersion=$version;target=$target;version='1.0.2';running=@(Get-Process blender,Photoshop -ErrorAction SilentlyContinue|Select-Object -ExpandProperty ProcessName -Unique)}
 }
 if($Mode -eq 'Inspect'){try{Detect|ConvertTo-Json -Compress -Depth 4;exit 0}catch{Write-Output $_.Exception.Message;exit 1}}
 $stage=$target+'.staging-'+[guid]::NewGuid().ToString('N')
@@ -35,7 +37,9 @@ $registryPath='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture
 $shortcutPath=Join-Path ([Environment]::GetFolderPath('Programs')) 'Texture3D.lnk'
 $addonBackups=@();$swapped=$false;$adobeAttempted=$false;$hadPrevious=$false
 try{
- Start-Transcript -Path $log -Force | Out-Null
+ $log=Start-Texture3DTranscript
+ $transcriptStarted=![string]::IsNullOrWhiteSpace($log)
+ Write-Output ('T3DLOG|'+[string]$log)
  Progress 4 'Vérification des logiciels'
  $info=Detect
  if($info.running.Count){throw 'Enregistre ton travail et ferme Blender et Photoshop, puis clique sur Réessayer.'}
@@ -92,13 +96,13 @@ try{
  if($shortcutExisted){Copy-Item -LiteralPath $shortcutPath -Destination (Join-Path $recovery 'shortcut.lnk')}
  $registrationStarted=$true
  Progress 90 'Finalisation des raccourcis'
- @{version='1.0.1';blender=$blender;blenders=$info.blenders;directory=$target}|ConvertTo-Json|Set-Content (Join-Path $target 'installation.json') -Encoding UTF8
+ @{version='1.0.2';blender=$blender;blenders=$info.blenders;directory=$target}|ConvertTo-Json|Set-Content (Join-Path $target 'installation.json') -Encoding UTF8
  $shell=New-Object -ComObject WScript.Shell
  $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Programs')) 'Texture3D.lnk'))
  $shortcut.TargetPath=Join-Path $env:WINDIR 'System32\wscript.exe';$shortcut.Arguments='"'+(Join-Path $target 'OUVRIR_VIEWER.vbs')+'"';$shortcut.WorkingDirectory=$target;$shortcut.IconLocation=(Join-Path $target 'assets\texture3d.ico')+',0';$shortcut.Save()
  $reg='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Texture3D'
  New-Item -Path $reg -Force|Out-Null
- (@{DisplayName='Texture3D Studio';DisplayVersion='1.0.1';DisplayIcon=(Join-Path $target 'assets\texture3d.ico');InstallLocation=$target;UninstallString=('powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "'+$target+'\uninstall.ps1"')}).GetEnumerator() | ForEach-Object {New-ItemProperty -Path $reg -Name $_.Key -Value $_.Value -Force|Out-Null}
+ (@{DisplayName='Texture3D Studio';DisplayVersion='1.0.2';DisplayIcon=(Join-Path $target 'assets\texture3d.ico');InstallLocation=$target;UninstallString=('powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "'+$target+'\uninstall.ps1"')}).GetEnumerator() | ForEach-Object {New-ItemProperty -Path $reg -Name $_.Key -Value $_.Value -Force|Out-Null}
  # Keep a recovery copy, outside the app. It is not registered or launched.
  if($hadPrevious){Progress 98 ('Sauvegarde conservée : '+$backup)}
  Set-Content (Join-Path $recovery 'completed.txt') 'ok'
@@ -154,7 +158,8 @@ try{
  if(Test-Path -LiteralPath $stage){
   try{Move-Item -LiteralPath $stage -Destination (Join-Path $recovery 'incomplete-preparation')}catch{}
  }
- Progress 0 ($reason+' Journal : '+$log)
+ $journalInfo=if($transcriptStarted){' Journal : '+$log}else{' Journal indisponible ; le diagnostic figure dans ce message.'}
+ Progress 0 ($reason+$journalInfo)
  exit 1
-}finally{Stop-Transcript -ErrorAction SilentlyContinue|Out-Null}
+}finally{if($transcriptStarted){Stop-Transcript -ErrorAction SilentlyContinue|Out-Null}}
 

@@ -44,7 +44,7 @@ Copy-Item -Path (Join-Path $root 'blender_addon\texture3d_blender\*.py') -Destin
 Copy-Item -LiteralPath $node -Destination (Join-Path $app 'runtime')
 Invoke-WebRequest "https://raw.githubusercontent.com/nodejs/node/$nodeVersion/LICENSE" -OutFile (Join-Path $app 'runtime\LICENSE.txt') -UseBasicParsing
 foreach($name in @('uninstall.ps1','uninstall-addon.py')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $app}
-foreach($name in @('setup.ps1','files.ps1')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $stage}
+foreach($name in @('setup.ps1','files.ps1','transcript.ps1')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $stage}
 Push-Location -LiteralPath $app
 try {
   $files=@(Get-ChildItem -Recurse -File | ForEach-Object {
@@ -63,7 +63,7 @@ Copy-Item -LiteralPath (Join-Path $app 'package-files.json') -Destination $stage
 # Only the explicitly staged runtime and scripts enter the installer.
 $payloadStage=Join-Path $env:TEMP ('Texture3D-payload-root-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $payloadStage|Out-Null
-foreach($name in @('app','setup.ps1','files.ps1','package-files.json')){Copy-Item -LiteralPath (Join-Path $stage $name) -Destination $payloadStage -Recurse}
+foreach($name in @('app','setup.ps1','files.ps1','transcript.ps1','package-files.json')){Copy-Item -LiteralPath (Join-Path $stage $name) -Destination $payloadStage -Recurse}
 $payload=$payloadStage+'.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($payloadStage,$payload)
 $output=Join-Path $release "Texture3D-Setup-$version.exe"
