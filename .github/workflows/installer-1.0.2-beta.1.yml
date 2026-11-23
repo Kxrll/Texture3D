@@ -47,8 +47,8 @@ jobs:
           if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw 'Installateur introuvable' }
           Move-Item -LiteralPath $source -Destination $dest
           $verified = Join-Path $env:RUNNER_TEMP 'texture3d-package-files.json'
-          & $dest --verify $verified
-          if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $verified)) { throw 'Échec de vérification du paquet' }
+          $verifyProcess = Start-Process -FilePath $dest -ArgumentList @('--verify', ('"' + $verified + '"')) -Wait -PassThru
+          if ($verifyProcess.ExitCode -ne 0 -or !(Test-Path -LiteralPath $verified -PathType Leaf)) { throw ('Échec de vérification du paquet (code ' + $verifyProcess.ExitCode + ')') }
           $files = Get-Content -LiteralPath $verified -Raw | ConvertFrom-Json
           if ('companion.cjs' -notin $files -or 'runtime\node.exe' -notin $files) { throw 'Paquet incomplet' }
           $sha = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLowerInvariant()
