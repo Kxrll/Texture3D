@@ -19,7 +19,7 @@ try {
     }
     $log = Start-Texture3DTranscript -TempDirectory $preferred -FallbackDirectory $fallback -Start $starter
     Assert (![string]::IsNullOrWhiteSpace($log)) 'Fallback did not return a journal'
-    Assert ($log.StartsWith($fallback, [StringComparison]::OrdinalIgnoreCase)) ("Fallback directory was not used. Returned=" + [string]$log + " Expected=" + $fallback + " Attempted=" + ($script:attempts -join ';'))
+    Assert ($log.StartsWith([IO.Path]::GetFullPath($fallback), [StringComparison]::OrdinalIgnoreCase)) ("Fallback directory was not used. Returned=" + [string]$log + " Expected=" + $fallback + " Attempted=" + ($script:attempts -join ';'))
     Assert ($script:attempts.Count -eq 2) 'Expected two transcription attempts'
     $script:failure = 'all'
     $script:attempts = @()
