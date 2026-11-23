@@ -11,6 +11,9 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Test de transcription et de journal inaccessible
+        shell: powershell
+        run: .\installer\test-transcript.ps1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -32,9 +35,6 @@ jobs:
       - name: Test de réinstallation
         shell: powershell
         run: .\installer\test-upgrade.ps1
-      - name: Test de transcription et de journal inaccessible
-        shell: powershell
-        run: .\installer\test-transcript.ps1
       - name: Construire l'installateur Windows
         shell: powershell
         run: .\installer\build.ps1
