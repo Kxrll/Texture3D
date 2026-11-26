@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17111d">
+  <title>Texture3D Studio — Test d’animation</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-synthesis: none;
+      --text: #f5eef4;
+      --muted: #aa9aa9;
+      --accent: #edb1cb;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      min-height: 100svh;
+      margin: 0;
+      background: radial-gradient(ellipse 65% 60% at 50% 44%, #342239 0%, #231826 43%, #17111d 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      overflow-x: hidden;
+    }
+    .screen {
+      width: min(100%, 780px);
+      padding: 36px 22px;
+      text-align: center;
+    }
+    .eyebrow {
+      color: #c4a2b7;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .23em;
+      text-transform: uppercase;
+      margin: 0 0 20px;
+    }
+    .stage {
+      position: relative;
+      display: grid;
+      place-items: center;
+      height: clamp(310px, 52vh, 490px);
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid rgba(237, 177, 203, .13);
+      border-radius: 24px;
+      background: radial-gradient(ellipse 60% 60% at 50% 49%, #4a2d44 0%, #291c2e 42%, #1a1420 100%);
+      box-shadow: 0 22px 85px #0b071141, inset 0 1px 0 #ffffff0c;
+      isolation: isolate;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 8%;
+      border-radius: 100%;
+      background: radial-gradient(circle, #d979af24 0%, transparent 67%);
+      filter: blur(23px);
+      pointer-events: none;
+    }
+    .stage.dragging {
+      border-color: #f1b9d9;
+      box-shadow: 0 0 0 3px #edb1cb2e, 0 22px 85px #0b071141;
+    }
+    .stage.dragging::after {
+      content: "Dépose ton animation ici";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #f8e6f0;
+      font-size: 18px;
+      font-weight: 600;
+      background: #201324dc;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .logo-demo {
+      width: min(83%, 380px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .symbol {
+      width: 152px;
+      max-width: 46%;
+      height: auto;
+      overflow: visible;
+      filter: drop-shadow(0 0 16px #f4abc04a);
+    }
+    .symbol path {
+      fill: none;
+      stroke: #f3bdd2;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .logo-demo.playing .symbol .top {
+      stroke-dasharray: 370;
+      stroke-dashoffset: 370;
+      animation: draw 0.7s cubic-bezier(.32,0,.2,1) .12s forwards;
+    }
+    .logo-demo.playing .symbol .sides {
+      stroke-dasharray: 355;
+      stroke-dashoffset: 355;
+      animation: draw 0.65s cubic-bezier(.32,0,.2,1) .55s forwards;
+    }
+    .logo-demo.playing .symbol .middle {
+      stroke-dasharray: 110;
+      stroke-dashoffset: 110;
+      animation: draw .34s ease-out .99s forwards;
+    }
+    .logo-name {
+      font-size: clamp(27px, 5vw, 43px);
+      line-height: 1.1;
+      letter-spacing: -.045em;
+      font-weight: 650;
+      margin: 0;
+    }
+    .logo-subtitle {
+      margin: -5px 0 0;
+      color: #e1aec7;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .4em;
+    }
+    .logo-demo.playing .logo-name {
+      opacity: 0;
+      transform: translateY(8px);
+      animation: reveal .58s ease-out 1.15s forwards;
+    }
+    .logo-demo.playing .logo-subtitle {
+      opacity: 0;
+      transform: translateY(6px);
+      animation: reveal .5s ease-out 1.48s forwards;
+    }
+    .player {
+      display: block;
+      max-width: 92%;
+      max-height: 92%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      position: relative;
+      z-index: 2;
+      border-radius: 5px;
+    }
+    .actions { margin-top: 26px; display: flex; justify-content: center; }
+    .replay {
+      border: 1px solid #d9a8c3;
+      background: linear-gradient(135deg, #f1c0d5, #d99fbc);
+      color: #281426;
+      border-radius: 13px;
+      padding: 13px 23px;
+      min-height: 48px;
+      font: inherit;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 8px 28px #1307164d;
+      transition: transform .15s, filter .15s;
+    }
+    .replay:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .replay:active { transform: translateY(0); }
+    .replay:focus-visible { outline: 3px solid #ffffff; outline-offset: 4px; }
+    .replay svg { width: 18px; height: 18px; }
+    .helper { margin: 18px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .status { margin: 7px 0 0; color: #e9bcd2; font-size: 12px; min-height: 1.4em; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 520px) {
+      .screen { padding: 26px 14px; }
+      .stage { border-radius: 18px; height: 340px; }
+      .symbol { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <p class="eyebrow">Texture3D Studio · Animation Lab</p>
+    <section class="stage" id="stage" aria-label="Prévisualisation de l’animation">
+      <div class="logo-demo" id="logoDemo" aria-label="Animation de démonstration du logo Texture3D">
+        <svg class="symbol" viewBox="0 0 300 252" role="img" aria-label="Cube Texture3D dessiné progressivement">
+          <path class="top" d="M150 22 L254 81 L150 140 L46 81 Z" />
+          <path class="sides" d="M46 81 V174 L150 232 L254 174 V81" />
+          <path class="middle" d="M150 140 V232" />
+        </svg>
+        <p class="logo-name">Texture3D</p>
+        <p class="logo-subtitle">STUDIO</p>
+      </div>
+    </section>
+    <div class="actions">
+      <button class="replay" id="replay" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 11a9 9 0 1 1 2.64 6.36" />
+          <path d="M3 3v8h8" />
+        </svg>
+        Relancer l’animation
+      </button>
+    </div>
+    <p class="helper">Tu peux glisser ton GIF, WebM, MP4 ou WebP animé au milieu de la page pour le tester.</p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </main>
+  <script>
+    const stage = document.getElementById('stage');
+    const demo = document.getElementById('logoDemo');
+    const replayButton = document.getElementById('replay');
+    const status = document.getElementById('status');
+    let importedFile = null;
+    let mediaElement = null;
+    let mediaURL = null;
+
+    function restartDemo() {
+      demo.classList.remove('playing');
+      // Reflow réinitialise les animations CSS avant de les relancer.
+      void demo.offsetWidth;
+      demo.classList.add('playing');
+    }
+
+    function releaseURL() {
+      if (mediaURL) URL.revokeObjectURL(mediaURL);
+      mediaURL = null;
+    }
+
+    function playImported() {
+      if (!importedFile) return;
+      const isVideo = importedFile.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(importedFile.name);
+      releaseURL();
+      mediaURL = URL.createObjectURL(importedFile);
+      if (mediaElement) mediaElement.remove();
+      mediaElement = document.createElement(isVideo ? 'video' : 'img');
+      mediaElement.className = 'player';
+      if (isVideo) {
+        mediaElement.muted = true;
+        mediaElement.playsInline = true;
+        mediaElement.autoplay = true;
+        mediaElement.loop = false;
+        mediaElement.src = mediaURL;
+        mediaElement.addEventListener('loadeddata', () => {
+          mediaElement.currentTime = 0;
+          mediaElement.play().catch(() => { status.textContent = 'Clique sur « Relancer l’animation » pour lire cette vidéo.'; });
+        }, { once: true });
+        mediaElement.addEventListener('error', () => { status.textContent = 'Format vidéo non pris en charge par ce navigateur.'; }, { once: true });
+      } else {
+        mediaElement.alt = 'Animation importée : ' + importedFile.name;
+        mediaElement.src = mediaURL;
+        mediaElement.addEventListener('error', () => { status.textContent = 'Image non prise en charge par ce navigateur.'; }, { once: true });
+      }
+      stage.append(mediaElement);
+    }
+
+    function replay() {
+      if (importedFile) playImported();
+      else restartDemo();
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!(file.type.startsWith('image/') || file.type.startsWith('video/') || /\.(gif|webp|png|apng|mp4|webm|mov)$/i.test(file.name))) {
+        status.textContent = 'Utilise un fichier GIF, WebP animé, APNG, WebM ou MP4.';
+        return;
+      }
+      importedFile = file;
+      demo.hidden = true;
+      status.textContent = 'Animation chargée : ' + file.name;
+      playImported();
+    }
+
+    replayButton.addEventListener('click', replay);
+    let dragDepth = 0;
+    window.addEventListener('dragenter', (event) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      dragDepth += 1;
+      stage.classList.add('dragging');
+    });
+    window.addEventListener('dragover', (event) => { event.preventDefault(); });
+    window.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) stage.classList.remove('dragging');
+    });
+    window.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dragDepth = 0;
+      stage.classList.remove('dragging');
+      handleFile(event.dataTransfer?.files?.[0]);
+    });
+    window.addEventListener('pagehide', releaseURL);
+    restartDemo();
+  </script>
+</body>
+</html>
