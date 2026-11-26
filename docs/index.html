@@ -181,20 +181,235 @@
       .stage { border-radius: 18px; height: 340px; }
       .symbol { width: 120px; }
     }
+  
+    /* The intro is a self-contained, illustrated SVG; no external assets. */
+    .stage { height: clamp(340px, 62vh, 540px); background: radial-gradient(ellipse at 50% 48%,#48334c 0%,#302337 44%,#1b1523 100%); }
+    .logo-demo { width: 100%; height: 100%; gap: 0; position: relative; }
+    .intro-art { display:block; width:100%; height:100%; overflow:hidden; }
+    .intro-art .ink { stroke-linecap:round; stroke-linejoin:round; }
+    .intro-art .ground-shadow { transform-box:fill-box; transform-origin:center; }
+    .intro-art .cube-motion { transform-origin:360px 350px; opacity:0; }
+    .intro-art .sketch { opacity:0; stroke-dasharray:1; stroke-dashoffset:1; }
+    .intro-art .figure-motion { transform-origin:360px 350px; }
+    .intro-art .paint-window { transform-origin:360px 350px; transform:scaleY(1); }
+    .intro-art .pencil-motion { transform-origin:0 0; opacity:0; }
+    .intro-art .magic { opacity:0; transform-origin:360px 255px; }
+    .intro-art .dust { opacity:0; transform-origin:360px 350px; }
+    .intro-art .brand { transform-origin:360px 412px; }
+    .intro-art .paint-trail { opacity:0; stroke-dasharray:1; stroke-dashoffset:1; }
+    .logo-demo.playing .ground-shadow { animation:groundPulse 5.8s both; }
+    .logo-demo.playing .cube-motion { animation:cubeRise 5.8s both; }
+    .logo-demo.playing .sketch { animation:sketchDraw 5.8s linear both; }
+    .logo-demo.playing .figure-motion { animation:figureGrow 5.8s both; }
+    .logo-demo.playing .paint-window { animation:paintReveal 5.8s both; }
+    .logo-demo.playing .pencil-motion { animation:pencilDance 5.8s both; }
+    .logo-demo.playing .magic { animation:magicBurst 5.8s both; }
+    .logo-demo.playing .dust { animation:dustPuff 5.8s both; }
+    .logo-demo.playing .brand { animation:brandReveal 5.8s both; }
+    .logo-demo.playing .paint-trail { animation:trailDraw 5.8s linear both; }
+    @keyframes groundPulse {
+      0%{transform:scale(.15,.55);opacity:0}
+      7%{opacity:.55} 18%{transform:scale(1.04,1);opacity:.9}
+      23%,39%{transform:scale(.92,.9);opacity:.75}
+      51%{transform:scale(1.17,1);opacity:.85} 100%{transform:scale(1);opacity:.75}
+    }
+    @keyframes cubeRise {
+      0%,3%{opacity:1;transform:translateY(175px) scale(.84,1.06)}
+      14%{opacity:1;transform:translateY(-12px) scale(.94,1.09)}
+      18%{opacity:1;transform:translateY(0) scale(1.1,.88)}
+      24%,39%{opacity:1;transform:translateY(0) scale(1)}
+      44%{opacity:1;transform:translateY(-6px) scale(.77,1.25)}
+      50%{opacity:0;transform:translateY(-15px) scale(.18,1.52)}
+      51%,100%{opacity:0;transform:scale(.01)}
+    }
+    @keyframes sketchDraw {
+      0%,23%{opacity:0;stroke-dashoffset:1}
+      24%{opacity:1;stroke-dashoffset:1}
+      39%,43%{opacity:1;stroke-dashoffset:0}
+      49%,100%{opacity:0;stroke-dashoffset:0}
+    }
+    @keyframes figureGrow {
+      0%,40%{opacity:0;transform:translateY(0) scale(.42,.38)}
+      44%{opacity:.25;transform:translateY(-4px) scale(.48,.56)}
+      50%{opacity:1;transform:translateY(-8px) scale(.94,1.06)}
+      55%{opacity:1;transform:translateY(0) scale(1.04,.97)}
+      61%,100%{opacity:1;transform:scale(1)}
+    }
+    @keyframes paintReveal {
+      0%,55%{transform:scaleY(0)}
+      63%{transform:scaleY(.30)}
+      70%{transform:scaleY(.57)}
+      77%{transform:scaleY(.82)}
+      83%,100%{transform:scaleY(1)}
+    }
+    @keyframes pencilDance {
+      0%,15%{opacity:0;transform:translate(690px,80px) rotate(25deg)}
+      21%{opacity:1;transform:translate(435px,235px) rotate(9deg)}
+      24%{opacity:1;transform:translate(395px,257px) rotate(-9deg)}
+      28%{opacity:1;transform:translate(331px,242px) rotate(-20deg)}
+      32%{opacity:1;transform:translate(315px,290px) rotate(13deg)}
+      36%{opacity:1;transform:translate(385px,310px) rotate(-12deg)}
+      40%{opacity:1;transform:translate(432px,269px) rotate(9deg)}
+      45%{opacity:1;transform:translate(465px,184px) rotate(29deg)}
+      51%{opacity:1;transform:translate(472px,309px) rotate(-7deg)}
+      55%{opacity:1;transform:translate(400px,334px) rotate(-14deg)}
+      59%{opacity:1;transform:translate(323px,316px) rotate(-22deg)}
+      63%{opacity:1;transform:translate(409px,285px) rotate(8deg)}
+      67%{opacity:1;transform:translate(305px,258px) rotate(-15deg)}
+      71%{opacity:1;transform:translate(417px,229px) rotate(15deg)}
+      75%{opacity:1;transform:translate(328px,197px) rotate(-15deg)}
+      79%{opacity:1;transform:translate(390px,159px) rotate(10deg)}
+      83%{opacity:1;transform:translate(367px,130px) rotate(-8deg)}
+      88%{opacity:1;transform:translate(493px,177px) rotate(34deg)}
+      91%{opacity:1;transform:translate(502px,158px) rotate(15deg)}
+      97%,100%{opacity:0;transform:translate(690px,55px) rotate(35deg)}
+    }
+    @keyframes magicBurst {
+      0%,39%{opacity:0;transform:scale(.3) rotate(-10deg)}
+      44%{opacity:.95;transform:scale(.75)}
+      50%{opacity:.8;transform:scale(1.15) rotate(12deg)}
+      57%,100%{opacity:0;transform:scale(1.55) rotate(22deg)}
+    }
+    @keyframes dustPuff {
+      0%,12%{opacity:0;transform:scale(.3)}
+      18%{opacity:.85;transform:scale(.75)}
+      25%,100%{opacity:0;transform:scale(1.4)}
+    }
+    @keyframes trailDraw {
+      0%,54%{opacity:0;stroke-dashoffset:1}
+      56%{opacity:.7;stroke-dashoffset:1}
+      82%{opacity:.7;stroke-dashoffset:0}
+      90%,100%{opacity:0;stroke-dashoffset:0}
+    }
+    @keyframes brandReveal {
+      0%,84%{opacity:0;transform:translateY(12px)}
+      96%,100%{opacity:1;transform:translateY(0)}
+    }
+    @media(max-width:520px){.stage{height:360px}.screen{padding:24px 12px}}
+
   </style>
 </head>
 <body>
   <main class="screen">
     <p class="eyebrow">Texture3D Studio · Animation Lab</p>
     <section class="stage" id="stage" aria-label="Prévisualisation de l’animation">
-      <div class="logo-demo" id="logoDemo" aria-label="Animation de démonstration du logo Texture3D">
-        <svg class="symbol" viewBox="0 0 300 252" role="img" aria-label="Cube Texture3D dessiné progressivement">
-          <path class="top" d="M150 22 L254 81 L150 140 L46 81 Z" />
-          <path class="sides" d="M46 81 V174 L150 232 L254 174 V81" />
-          <path class="middle" d="M150 140 V232" />
+
+      <div class="logo-demo" id="logoDemo" aria-label="Un cube surgit du sol, un crayon le transforme en personnage en A-pose et le peint">
+        <svg class="intro-art" viewBox="0 0 720 460" role="img" aria-label="Animation illustrée de Texture3D Studio">
+          <defs>
+            <radialGradient id="floor"><stop stop-color="#a879a0" stop-opacity=".22"/><stop offset="1" stop-color="#a879a0" stop-opacity="0"/></radialGradient>
+            <radialGradient id="shadow"><stop stop-color="#0e0b15" stop-opacity=".9"/><stop offset="1" stop-color="#0e0b15" stop-opacity="0"/></radialGradient>
+            <linearGradient id="cubeTop" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0dfd5"/><stop offset="1" stop-color="#b9a3b1"/></linearGradient>
+            <linearGradient id="cubeLeft" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#d0bdc7"/><stop offset="1" stop-color="#988398"/></linearGradient>
+            <linearGradient id="cubeRight" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a28caa"/><stop offset="1" stop-color="#695d80"/></linearGradient>
+            <linearGradient id="skin" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffcfaa"/><stop offset=".48" stop-color="#e9a58d"/><stop offset="1" stop-color="#b66d78"/></linearGradient>
+            <linearGradient id="hair" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#f3bd78"/><stop offset=".45" stop-color="#c47753"/><stop offset="1" stop-color="#734653"/></linearGradient>
+            <linearGradient id="coat" x1="0" y1="0" x2="1" y2=".7"><stop stop-color="#a2d7cc"/><stop offset=".5" stop-color="#4f9d9d"/><stop offset="1" stop-color="#315a77"/></linearGradient>
+            <linearGradient id="pants" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#9a91b8"/><stop offset=".5" stop-color="#655c86"/><stop offset="1" stop-color="#393750"/></linearGradient>
+            <linearGradient id="boot" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#78576c"/><stop offset="1" stop-color="#342b48"/></linearGradient>
+            <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe5a6"/><stop offset="1" stop-color="#d58c65"/></linearGradient>
+            <linearGradient id="clay" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#f1e5dd"/><stop offset=".48" stop-color="#c1b3bd"/><stop offset="1" stop-color="#81738e"/></linearGradient>
+            <linearGradient id="clayDark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#bdb0ba"/><stop offset="1" stop-color="#675c76"/></linearGradient>
+            <clipPath id="groundClip"><rect x="0" y="0" width="720" height="350"/></clipPath>
+            <clipPath id="paintClip"><rect class="paint-window" x="220" y="72" width="280" height="278"/></clipPath>
+            <g id="character" class="ink" stroke="var(--outline,#403149)" stroke-width="1.7">
+              <!-- Back hair and scarf tail, then the two legs and arms in A-pose. -->
+              <path d="M337 132Q321 158 328 192L346 203L387 191Q399 168 386 132Z" fill="var(--hair)"/>
+              <path d="M344 187Q317 192 305 211L274 245L290 260L330 232L347 216Z" fill="var(--coat)"/>
+              <path d="M376 187Q403 192 415 211L446 245L430 260L390 232L373 216Z" fill="var(--coat)"/>
+              <path d="M305 212L286 235L296 242L320 223" fill="var(--shade)" stroke="none" opacity=".45"/>
+              <path d="M414 214L435 241L428 248L399 226" fill="var(--shade)" stroke="none" opacity=".6"/>
+              <path d="M278 241L294 254L285 266L268 253Z M442 241L426 254L435 266L452 253Z" fill="var(--trim)"/>
+              <path d="M268 252Q260 253 256 261L250 267Q248 271 253 273L260 270L259 277Q259 282 264 280L268 274Q272 279 275 275L284 265Z" fill="var(--skin)"/>
+              <path d="M452 252Q460 253 464 261L470 267Q472 271 467 273L460 270L461 277Q461 282 456 280L452 274Q448 279 445 275L436 265Z" fill="var(--skin)"/>
+              <path d="M337 254L360 259L357 298L346 328L325 326L329 290Z" fill="var(--pants)"/>
+              <path d="M360 259L383 254L391 290L395 326L374 328L363 298Z" fill="var(--pants)"/>
+              <path d="M338 271L334 300L329 316M379 272L386 302L389 316" stroke="var(--highlight)" stroke-width="3" fill="none" opacity=".48"/>
+              <path d="M326 317L348 319L347 336Q350 345 340 348H312Q304 345 311 339L324 332Z" fill="var(--boot)"/>
+              <path d="M372 319L394 317L396 332L409 339Q416 345 408 348H380Q370 345 373 336Z" fill="var(--boot)"/>
+              <path d="M313 341Q326 337 341 341M379 341Q395 337 407 341" stroke="var(--highlight)" stroke-width="2" fill="none" opacity=".55"/>
+              <path d="M326 321L346 323M374 323L394 321" stroke="var(--trim)" stroke-width="3"/>
+              <!-- Torso, coat panels, belt and scarf. -->
+              <path d="M344 185Q360 180 376 185L391 208L382 235L390 260Q360 275 330 260L338 235L329 208Z" fill="var(--coat)"/>
+              <path d="M360 194L370 221L365 257L353 257L350 221Z" fill="var(--shirt)"/>
+              <path d="M343 193L333 211L345 226L350 214Z M377 193L387 211L375 226L370 214Z" fill="var(--trim)"/>
+              <path d="M336 230Q346 237 350 249L332 255M384 230Q374 237 370 249L388 255" fill="var(--shade)" stroke="none" opacity=".38"/>
+              <path d="M335 251Q360 260 385 251L387 259Q360 270 333 259Z" fill="var(--boot)"/>
+              <rect x="354" y="254" width="12" height="9" rx="2" fill="var(--gold)"/>
+              <path d="M343 230L343 240M377 230L377 240" stroke="var(--gold)" stroke-width="2.6"/>
+              <path d="M340 183L349 175H371L380 183L376 199Q360 206 344 199Z" fill="var(--scarf)"/>
+              <path d="M369 196Q389 205 394 226L381 231Q377 212 362 203" fill="var(--scarf)"/>
+              <path d="M347 190Q360 195 373 190" stroke="var(--highlight)" stroke-width="2" fill="none" opacity=".7"/>
+              <!-- Face and sculpted locks. -->
+              <path d="M350 170L349 184Q360 191 371 184L370 170Z" fill="var(--skin)"/>
+              <path d="M335 142Q325 139 326 151Q327 160 337 159M385 142Q395 139 394 151Q393 160 383 159" fill="var(--skin)"/>
+              <path d="M332 134Q332 111 360 108Q388 111 388 134L385 156Q380 175 360 179Q340 175 335 156Z" fill="var(--skin)"/>
+              <path d="M334 148Q324 136 329 120Q333 104 350 100Q369 90 387 105Q400 118 390 146L383 151L381 127Q365 133 352 118Q347 138 334 148Z" fill="var(--hair)"/>
+              <path d="M333 125Q338 108 351 106M355 105Q370 100 383 112M359 111Q372 124 383 121" stroke="var(--hairLight)" stroke-width="3.4" fill="none" opacity=".85"/>
+              <path d="M337 133Q343 127 346 119M389 124Q391 136 385 143" stroke="var(--hairLight)" stroke-width="2" fill="none" opacity=".6"/>
+              <path d="M340 144Q347 140 353 144M367 144Q373 140 380 144" stroke="var(--outline)" stroke-width="2.1" fill="none"/>
+              <path d="M341 148Q347 145 353 148L351 153Q346 156 342 152Z M367 148Q373 145 379 148L378 152Q374 156 369 153Z" fill="var(--eyeWhite)" stroke-width=".8"/>
+              <ellipse cx="348" cy="150" rx="2.7" ry="3.4" fill="var(--iris)" stroke="none"/><ellipse cx="372" cy="150" rx="2.7" ry="3.4" fill="var(--iris)" stroke="none"/>
+              <path d="M359 149L356 158L361 159M354 165Q360 168 366 165" fill="none" stroke="var(--faceLine)" stroke-width="1.4"/>
+              <path d="M339 158L345 157M375 157L381 158" stroke="var(--blush)" stroke-width="3" opacity=".75"/>
+              <!-- Small painted highlights and brushlike facets. -->
+              <g fill="var(--highlight)" stroke="none" opacity=".42">
+                <path d="M336 207L341 201L339 215L333 220Z M378 201L384 207L386 216L380 213Z"/>
+                <path d="M305 218L315 207L312 215L300 226Z M407 211L419 225L414 223L405 218Z"/>
+                <path d="M340 275L345 270L343 288L338 294Z M374 272L379 277L382 293L377 289Z"/>
+                <path d="M339 137L343 132L345 138Z M369 160L379 157L374 165Z"/>
+              </g>
+              <g fill="var(--gold)" stroke="none"><path d="M345 214l3 4-3 4-3-4Z"/><path d="M375 214l3 4-3 4-3-4Z"/></g>
+            </g>
+          </defs>
+          <ellipse cx="360" cy="348" rx="272" ry="71" fill="url(#floor)"/>
+          <ellipse cx="360" cy="350" rx="129" ry="18" fill="url(#shadow)" class="ground-shadow"/>
+          <path d="M221 350H499" stroke="#e5b8d6" stroke-opacity=".13" stroke-width="1" stroke-linecap="round"/>
+          <g clip-path="url(#groundClip)">
+            <g class="cube-motion ink" stroke="#68566d" stroke-width="2">
+              <path d="M360 188L445 228L360 270L275 228Z" fill="url(#cubeTop)"/>
+              <path d="M275 228L360 270V350L275 308Z" fill="url(#cubeLeft)"/>
+              <path d="M360 270L445 228V308L360 350Z" fill="url(#cubeRight)"/>
+              <path d="M279 228L360 190L440 228M279 232L360 272L440 232" fill="none" stroke="#fff0e6" stroke-opacity=".65" stroke-width="1.6"/>
+              <path d="M284 244V303L351 336" fill="none" stroke="#f0d8e3" stroke-opacity=".24" stroke-width="2"/>
+              <path class="sketch" pathLength="1" d="M395 257Q366 241 331 242Q310 250 315 290Q336 316 385 310Q415 300 432 269" fill="none" stroke="#ffe2a2" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+          </g>
+          <g class="dust" fill="#d8a6ca">
+            <circle cx="269" cy="342" r="5"/><circle cx="253" cy="332" r="3"/><circle cx="452" cy="340" r="5"/><circle cx="470" cy="331" r="3"/><circle cx="238" cy="344" r="2"/>
+          </g>
+          <g class="figure-motion">
+            <use href="#character" style="--hair:url(#clayDark);--coat:url(#clay);--pants:url(#clayDark);--boot:url(#clayDark);--skin:url(#clay);--trim:#b3a5b8;--shade:#71657e;--shirt:#d5c9d0;--gold:#d8cbd2;--scarf:url(#clayDark);--highlight:#f2e8e5;--hairLight:#d3c5ce;--eyeWhite:#e9dfe2;--iris:#75687f;--faceLine:#8d7d91;--blush:#bba8b9;--outline:#77677d"/>
+            <g clip-path="url(#paintClip)">
+              <use href="#character" style="--hair:url(#hair);--coat:url(#coat);--pants:url(#pants);--boot:url(#boot);--skin:url(#skin);--trim:#e2c9a1;--shade:#24475e;--shirt:#f2d9b4;--gold:url(#gold);--scarf:#c97085;--highlight:#fce3bf;--hairLight:#ffd79c;--eyeWhite:#fff1df;--iris:#477f82;--faceLine:#9d5f69;--blush:#d97c82;--outline:#44354d"/>
+            </g>
+          </g>
+          <g class="magic" fill="none" stroke="#f9d6a7" stroke-linecap="round">
+            <ellipse cx="360" cy="252" rx="104" ry="57" transform="rotate(-23 360 252)" stroke-width="1.8" stroke-dasharray="6 12"/>
+            <path d="M250 203l6-10 6 10-6 10Z M457 216l5-9 5 9-5 9Z M414 132l4-7 4 7-4 7Z" fill="#ffe4b7" stroke="none"/>
+            <path d="M288 174v14m-7-7h14M463 290v14m-7-7h14M255 276v10m-5-5h10" stroke-width="2"/>
+          </g>
+          <path class="paint-trail" pathLength="1" d="M400 334Q300 340 323 316T409 285T305 258T417 229T328 197T390 159T367 130" fill="none" stroke="#f6cf9b" stroke-width="2" stroke-linecap="round"/>
+          <!-- Pencil tip is the origin, so the tip follows the drawn path. -->
+          <g class="pencil-motion ink" stroke="#55394e" stroke-width="1.5">
+            <g transform="rotate(35)">
+              <path d="M0 0L-10 -19L-10 -81Q0 -87 10 -81L10 -19Z" fill="#f4c778"/>
+              <path d="M-10 -19L0 0L10 -19L0 -16Z" fill="#f7dfb8"/>
+              <path d="M0 0L-3 -6L3 -6Z" fill="#47354e"/>
+              <path d="M-5 -23V-78" stroke="#fff0b0" stroke-width="3"/>
+              <path d="M6 -22V-79" stroke="#c58b5b" stroke-width="3"/>
+              <path d="M-10 -78V-90Q0 -97 10 -90V-78Z" fill="#d88ba7"/>
+              <path d="M-10 -79H10V-72H-10Z" fill="#c6b8c8"/>
+              <path d="M-4 -51v3M4 -51v3M-3 -44Q0 -41 3 -44" fill="none" stroke="#593b4e" stroke-width="1.7"/>
+              <path d="M-12 -48Q-20 -46 -19 -39M12 -48Q20 -48 20 -55" fill="none" stroke="#f5d8d0" stroke-width="2.2"/>
+              <circle cx="-19" cy="-39" r="2.5" fill="#f5d8d0" stroke="none"/><circle cx="20" cy="-55" r="2.5" fill="#f5d8d0" stroke="none"/>
+            </g>
+          </g>
+          <g class="brand" text-anchor="middle">
+            <text x="360" y="405" font-family="Inter, Segoe UI, sans-serif" font-size="30" font-weight="650" letter-spacing="-1.4" fill="#fff2f3">Texture3D</text>
+            <text x="360" y="426" font-family="Inter, Segoe UI, sans-serif" font-size="10" font-weight="600" letter-spacing="4.5" fill="#e3b4cd">STUDIO</text>
+          </g>
         </svg>
-        <p class="logo-name">Texture3D</p>
-        <p class="logo-subtitle">STUDIO</p>
       </div>
     </section>
     <div class="actions">
