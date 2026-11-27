@@ -36,7 +36,7 @@ Lancer `OUVRIR_VIEWER.vbs`, puis créer un projet depuis Blender. Les projets so
 | Sources | Rôle |
 | --- | --- |
 | `src/viewer.js` | Rendu Three.js, navigation et commandes |
-| `studio.css`, `src/viewer.html`, `restyle.cjs` | Apparence et génération de l’interface |
+| `studio.css`, `src/viewer.html`, `scripts/restyle.cjs` | Apparence et génération de l’interface |
 | `viewer/` | Interface compilée |
 | `companion.cjs` | Serveur local, synchronisation, transferts |
 | `main.js`, `manifest.json`, `index.html` | Plugin Photoshop UXP |
@@ -44,7 +44,8 @@ Lancer `OUVRIR_VIEWER.vbs`, puis créer un projet depuis Blender. Les projets so
 | `blender_addon/texture3d_blender/` | Extension, matériaux, UV et projets |
 | `installer/` | Installateur C#/PowerShell et mise à jour |
 | `assets/` | Icônes et modèle de démonstration |
-| `test-*`, `installer/test-*` | Tests |
+| `tests/`, `installer/test-*` | Tests |
+| `scripts/` | Outils de développement : génération de l’interface, prototype Photoshop, diagnostic de stockage |
 
 ## Comportement à conserver
 
@@ -71,10 +72,11 @@ Les sauvegardes de mise à jour sont dans `%LOCALAPPDATA%\Texture3D\Recovery`. L
 
 ```powershell
 npm run check
-node test-guide-exclusion.cjs
-node test-native-reconnect.cjs
+npm test
+node tests/test-guide-exclusion.cjs
+node tests/test-native-reconnect.cjs
 powershell.exe -NoProfile -File installer/test-upgrade.ps1
-& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' --background --factory-startup --python-exit-code 1 --python test-texture-sets.py
+& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' --background --factory-startup --python-exit-code 1 --python tests/test-texture-sets.py
 ```
 
 `installer/test-backend.ps1 -PackageStage <dossier temporaire affiché par le build>` teste la mise à jour et un échec volontaire dans un profil isolé, avec Adobe et Blender simulés. Cela ne remplace pas un essai de l’installateur réel.

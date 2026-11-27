@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build.cjs",
     "check": "node --check main.js && node --check src/viewer.js",
-    "test": "node test-guide-exclusion.cjs && node test-native-reconnect.cjs && node test-return-bridge.cjs && node test-painter-photoshop.cjs"
+    "test": "node tests/test-guide-exclusion.cjs && node tests/test-native-reconnect.cjs && node tests/test-return-bridge.cjs && node tests/test-painter-photoshop.cjs"
   },
   "dependencies": {
     "three": "0.180.0"

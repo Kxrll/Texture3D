@@ -23,20 +23,20 @@ jobs:
       - name: Capture UXP simulée et serveur
         run: npm test
       - name: Pont Painter HTTP simulé
-        run: node test-painter-bridge.cjs
+        run: node tests/test-painter-bridge.cjs
       - name: Contrat de propriété des ressources (sans Adobe)
-        run: python test-painter-resources.py
+        run: python tests/test-painter-resources.py
       - name: Contrat export natif Painter (API simulée)
-        run: python test-painter-texture-export.py
+        run: python tests/test-painter-texture-export.py
       - name: Contrôles PNG, géométrie et calques gérés
-        run: python test-painter-safety.py
+        run: python tests/test-painter-safety.py
       - name: Réception Photoshop sans écrasement (simulation)
-        run: node test-roundtrip-photoshop.cjs
+        run: node tests/test-roundtrip-photoshop.cjs
       - name: Viewer dans Edge headless (hôtes simulés)
         run: |
-          node test-painter-viewer.cjs
+          node tests/test-painter-viewer.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node test-object-tools.cjs
+          node tests/test-object-tools.cjs
       - name: Installation simulée sans application Adobe
         run: powershell -NoProfile -ExecutionPolicy Bypass -File installer/test-upgrade.ps1
 # Les essais Photoshop/Painter/Blender natifs restent une recette séparée sur poste équipé.

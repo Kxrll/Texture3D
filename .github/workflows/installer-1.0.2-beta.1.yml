@@ -25,13 +25,13 @@ jobs:
       - run: npm run build
       - run: npm run check
       - run: npm test
-      - run: node test-painter-bridge.cjs
-      - run: python test-painter-resources.py
-      - run: python test-painter-texture-export.py
-      - run: python test-painter-safety.py
-      - run: node test-roundtrip-photoshop.cjs
-      - run: node test-painter-viewer.cjs
-      - run: node test-object-tools.cjs
+      - run: node tests/test-painter-bridge.cjs
+      - run: python tests/test-painter-resources.py
+      - run: python tests/test-painter-texture-export.py
+      - run: python tests/test-painter-safety.py
+      - run: node tests/test-roundtrip-photoshop.cjs
+      - run: node tests/test-painter-viewer.cjs
+      - run: node tests/test-object-tools.cjs
       - name: Test de réinstallation
         shell: powershell
         run: .\installer\test-upgrade.ps1

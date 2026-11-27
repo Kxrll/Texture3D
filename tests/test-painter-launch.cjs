@@ -1,0 +1,15 @@
+process.chdir(require('node:path').join(__dirname,'..'));
+const assert=require('node:assert/strict');const {launchIfNeeded}=require('../painter-launch.cjs');
+(async()=>{let launches=0;
+for(let i=0;i<3;i++)assert.equal((await launchIfNeeded({connected:false,isRunning:async()=>true,launch:()=>launches++})).launched,false);
+assert.equal(launches,0);
+await launchIfNeeded({connected:true,isRunning:async()=>{throw Error('must not query');},launch:()=>launches++});assert.equal(launches,0);
+await launchIfNeeded({connected:false,isRunning:async()=>false,launch:()=>launches++});assert.equal(launches,1);
+await assert.rejects(launchIfNeeded({connected:false,isRunning:async()=>{throw Error('query failed');},launch:()=>launches++}));assert.equal(launches,1);
+const {currentTarget}=require('../painter-launch.cjs');const now=10000;
+assert.equal(currentTarget([], {context:'old'},now),null);
+assert.equal(currentTarget([{seen:now,catalogue:{context:'new',uuid:'u'}}],{context:'old'},now).context,'new');
+assert.equal(currentTarget([{seen:0,catalogue:{context:'stale'}}],null,now),null);
+assert.throws(()=>currentTarget([{seen:now,catalogue:{context:'a'}},{seen:now,catalogue:{context:'b'}}],null,now));
+assert.equal(currentTarget([{seen:now,catalogue:{context:'same'}},{seen:now,catalogue:{context:'same'}}],null,now).context,'same');
+console.log('PASS: existing Painter reused, connected receiver reused, only absent Painter launched, detection failure never launches.');})().catch(e=>{console.error(e);process.exitCode=1});
