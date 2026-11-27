@@ -182,7 +182,7 @@
       .symbol { width: 120px; }
     }
   
-    /* The intro is a self-contained, illustrated SVG; no external assets. */
+    /* The intro is a self-contained, illustrated SVG; no external assets. 7,5 s au total. */
     .stage { height: clamp(340px, 62vh, 540px); background: radial-gradient(ellipse at 50% 48%,#48334c 0%,#302337 44%,#1b1523 100%); }
     .logo-demo { width: 100%; height: 100%; gap: 0; position: relative; }
     .intro-art { display:block; width:100%; height:100%; overflow:hidden; }
@@ -190,100 +190,118 @@
     .intro-art .ground-shadow { transform-box:fill-box; transform-origin:center; }
     .intro-art .cube-motion { transform-origin:360px 350px; opacity:0; }
     .intro-art .sketch { opacity:0; stroke-dasharray:1; stroke-dashoffset:1; }
-    .intro-art .figure-motion { transform-origin:360px 350px; }
-    .intro-art .paint-window { transform-origin:360px 350px; transform:scaleY(1); }
-    .intro-art .pencil-motion { transform-origin:0 0; opacity:0; }
-    .intro-art .magic { opacity:0; transform-origin:360px 255px; }
+    .intro-art .figure-motion { transform-origin:360px 350px; opacity:0; }
+    .intro-art .idle { transform-origin:360px 350px; }
+    .intro-art .pencil-motion { offset-path:path('M690 70 L520 120 L295.6 228.4 L359.8 197.8 L370.7 203.8 L305.9 234.8 L315.7 239.7 L377.3 209.3 L392.5 215.1 L325.5 244.1 L341.3 249.5 L401.6 218.8 L412.4 222.2 L349.9 252.6 L355.7 259.0 L422.4 230.4 L284.4 244.2 L349.7 275.6 L349.2 285.6 L283.8 253.9 L287.0 267.9 L348.0 298.7 L348.7 309.4 L287.6 280.8 L284.7 290.4 L349.1 323.4 L350.1 333.1 L288.5 301.9 L370.6 277.0 L432.2 245.5 L431.6 258.0 L372.4 286.9 L373.0 297.1 L434.9 267.6 L434.4 278.8 L372.8 311.2 L370.9 322.5 L431.7 292.7 L434.7 303.9 L372.7 331.7 L362 342 L282 304 L281 232 L360 194 L439 232 L439 304 L362 342 L395 300 L360 262'); offset-rotate:0deg; offset-anchor:0 0; offset-distance:0%; opacity:0; }
+    .intro-art .pencil-wiggle { transform-origin:0 0; }
+    .intro-art .cloud { opacity:0; }
+    .intro-art .puff, .intro-art .puff > *, .intro-art .tool, .intro-art .bit { transform-box:fill-box; transform-origin:center; }
+    .intro-art .puff, .intro-art .tool, .intro-art .bit { opacity:0; }
+    .intro-art .magic { opacity:0; transform-origin:360px 240px; }
     .intro-art .dust { opacity:0; transform-origin:360px 350px; }
-    .intro-art .brand { transform-origin:360px 412px; }
-    .intro-art .paint-trail { opacity:0; stroke-dasharray:1; stroke-dashoffset:1; }
-    .logo-demo.playing .ground-shadow { animation:groundPulse 5.8s both; }
-    .logo-demo.playing .cube-motion { animation:cubeRise 5.8s both; }
-    .logo-demo.playing .sketch { animation:sketchDraw 5.8s linear both; }
-    .logo-demo.playing .figure-motion { animation:figureGrow 5.8s both; }
-    .logo-demo.playing .paint-window { animation:paintReveal 5.8s both; }
-    .logo-demo.playing .pencil-motion { animation:pencilDance 5.8s both; }
-    .logo-demo.playing .magic { animation:magicBurst 5.8s both; }
-    .logo-demo.playing .dust { animation:dustPuff 5.8s both; }
-    .logo-demo.playing .brand { animation:brandReveal 5.8s both; }
-    .logo-demo.playing .paint-trail { animation:trailDraw 5.8s linear both; }
+    .intro-art .brand { transform-origin:360px 412px; opacity:0; }
+    .logo-demo.playing .ground-shadow { animation:groundPulse 7.5s both; }
+    .logo-demo.playing .cube-motion { animation:cubeRise 7.5s both; }
+    .logo-demo.playing .sketch { animation:sketchDraw 7.5s linear both; }
+    .logo-demo.playing .pencil-motion { animation:pencilPath 7.5s linear both; }
+    .logo-demo.playing .pencil-wiggle { animation:pencilWiggle .18s ease-in-out infinite alternate; }
+    .logo-demo.playing .cloud { animation:cloudLife 7.5s both, cloudShake .11s steps(2) infinite; }
+    .logo-demo.playing .puff { animation:puffLife 7.5s both; animation-delay:var(--d,0s); }
+    .logo-demo.playing .puff > * { animation:boil .3s ease-in-out infinite alternate; animation-delay:var(--b,0s); }
+    .logo-demo.playing .tool { animation:toolPop 7.5s both; animation-delay:var(--d,0s); }
+    .logo-demo.playing .bit { animation:bitFly 7.5s ease-out both; animation-delay:var(--d,0s); }
+    .logo-demo.playing .figure-motion { animation:figurePop 7.5s both; }
+    .logo-demo.playing .idle { animation:idle 2.6s ease-in-out 7.5s infinite; }
+    .logo-demo.playing .magic { animation:magicBurst 7.5s both; }
+    .logo-demo.playing .dust { animation:dustPuff 7.5s both; }
+    .logo-demo.playing .brand { animation:brandReveal 7.5s both; }
+    .intro-art .plume { transform-box:fill-box; transform-origin:center; opacity:0; }
+    .logo-demo.playing .plume { animation:plume 1.1s ease-out infinite; animation-delay:var(--d,0s); }
+    .logo-demo.playing .plumes { animation:plumesLife 7.5s both; }
+    @keyframes plume { 0%{opacity:0;transform:translate(0,0) scale(.5)} 20%{opacity:.85} 100%{opacity:0;transform:translate(var(--sx),-150px) scale(1.9)} }
+    @keyframes plumesLife { 0%,49%{opacity:0} 51%,74%{opacity:1} 82%,100%{opacity:0} }
     @keyframes groundPulse {
       0%{transform:scale(.15,.55);opacity:0}
-      7%{opacity:.55} 18%{transform:scale(1.04,1);opacity:.9}
-      23%,39%{transform:scale(.92,.9);opacity:.75}
-      51%{transform:scale(1.17,1);opacity:.85} 100%{transform:scale(1);opacity:.75}
+      6%{opacity:.55} 15%{transform:scale(1.04,1);opacity:.9}
+      19%,46%{transform:scale(.95,.92);opacity:.75}
+      52%,72%{transform:scale(1.45,1.1);opacity:.95}
+      80%{transform:scale(.8,.9);opacity:.8} 100%{transform:scale(.88,.92);opacity:.75}
     }
     @keyframes cubeRise {
-      0%,3%{opacity:1;transform:translateY(175px) scale(.84,1.06)}
-      14%{opacity:1;transform:translateY(-12px) scale(.94,1.09)}
-      18%{opacity:1;transform:translateY(0) scale(1.1,.88)}
-      24%,39%{opacity:1;transform:translateY(0) scale(1)}
-      44%{opacity:1;transform:translateY(-6px) scale(.77,1.25)}
-      50%{opacity:0;transform:translateY(-15px) scale(.18,1.52)}
-      51%,100%{opacity:0;transform:scale(.01)}
+      0%,2%{opacity:1;transform:translateY(175px) scale(.84,1.06)}
+      12%{opacity:1;transform:translateY(-12px) scale(.94,1.09)}
+      15%{opacity:1;transform:translateY(0) scale(1.1,.88)}
+      19%{opacity:1;transform:translateY(0) scale(1)}
+      45%{opacity:1;transform:translate(0,0) rotate(0)}
+      46.5%{opacity:1;transform:translate(-4px,-2px) rotate(-2deg)}
+      48%{opacity:1;transform:translate(5px,1px) rotate(2.5deg)}
+      49.5%{opacity:1;transform:translate(-5px,-3px) rotate(-3deg) scale(1.03,.97)}
+      51%{opacity:1;transform:translate(4px,0) rotate(2deg) scale(.97,1.04)}
+      54%{opacity:1;transform:translateY(4px) scale(.9)}
+      55%,100%{opacity:0;transform:scale(.01)}
     }
     @keyframes sketchDraw {
-      0%,23%{opacity:0;stroke-dashoffset:1}
-      24%{opacity:1;stroke-dashoffset:1}
-      39%,43%{opacity:1;stroke-dashoffset:0}
-      49%,100%{opacity:0;stroke-dashoffset:0}
+      0%,19.9%{opacity:0;stroke-dashoffset:1}
+      20%{opacity:1;stroke-dashoffset:1}
+      48%{opacity:1;stroke-dashoffset:0}
+      100%{opacity:1;stroke-dashoffset:0}
     }
-    @keyframes figureGrow {
-      0%,40%{opacity:0;transform:translateY(0) scale(.42,.38)}
-      44%{opacity:.25;transform:translateY(-4px) scale(.48,.56)}
-      50%{opacity:1;transform:translateY(-8px) scale(.94,1.06)}
-      55%{opacity:1;transform:translateY(0) scale(1.04,.97)}
-      61%,100%{opacity:1;transform:scale(1)}
+    @keyframes pencilPath {
+      0%,14.6%{opacity:0;offset-distance:0%}
+      14.7%{opacity:1;offset-distance:0%;animation-timing-function:ease-out}
+      20%{opacity:1;offset-distance:15.35%;animation-timing-function:linear}
+      48%{opacity:1;offset-distance:96.22%;animation-timing-function:ease-in}
+      51.5%{opacity:1;offset-distance:100%;transform:scale(1)}
+      53%,100%{opacity:0;offset-distance:100%;transform:scale(.2)}
     }
-    @keyframes paintReveal {
-      0%,55%{transform:scaleY(0)}
-      63%{transform:scaleY(.30)}
-      70%{transform:scaleY(.57)}
-      77%{transform:scaleY(.82)}
-      83%,100%{transform:scaleY(1)}
+    @keyframes pencilWiggle { from{transform:rotate(-6deg) translateY(-1px)} to{transform:rotate(6deg) translateY(1px)} }
+    @keyframes cloudLife { 0%,48%{opacity:0} 49%,79%{opacity:1} 88%,100%{opacity:0} }
+    @keyframes cloudShake { 0%{transform:translate(-2px,1px)} 100%{transform:translate(2px,-1px)} }
+    @keyframes puffLife {
+      0%,49%{opacity:0;transform:scale(0)}
+      52%{opacity:1;transform:scale(1.15)}
+      55%,73%{opacity:1;transform:scale(1)}
+      76%{opacity:.9;transform:translate(calc(var(--dx)*.4),calc(var(--dy)*.4)) scale(1.12)}
+      83%,100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.5)}
     }
-    @keyframes pencilDance {
-      0%,15%{opacity:0;transform:translate(690px,80px) rotate(25deg)}
-      21%{opacity:1;transform:translate(435px,235px) rotate(9deg)}
-      24%{opacity:1;transform:translate(395px,257px) rotate(-9deg)}
-      28%{opacity:1;transform:translate(331px,242px) rotate(-20deg)}
-      32%{opacity:1;transform:translate(315px,290px) rotate(13deg)}
-      36%{opacity:1;transform:translate(385px,310px) rotate(-12deg)}
-      40%{opacity:1;transform:translate(432px,269px) rotate(9deg)}
-      45%{opacity:1;transform:translate(465px,184px) rotate(29deg)}
-      51%{opacity:1;transform:translate(472px,309px) rotate(-7deg)}
-      55%{opacity:1;transform:translate(400px,334px) rotate(-14deg)}
-      59%{opacity:1;transform:translate(323px,316px) rotate(-22deg)}
-      63%{opacity:1;transform:translate(409px,285px) rotate(8deg)}
-      67%{opacity:1;transform:translate(305px,258px) rotate(-15deg)}
-      71%{opacity:1;transform:translate(417px,229px) rotate(15deg)}
-      75%{opacity:1;transform:translate(328px,197px) rotate(-15deg)}
-      79%{opacity:1;transform:translate(390px,159px) rotate(10deg)}
-      83%{opacity:1;transform:translate(367px,130px) rotate(-8deg)}
-      88%{opacity:1;transform:translate(493px,177px) rotate(34deg)}
-      91%{opacity:1;transform:translate(502px,158px) rotate(15deg)}
-      97%,100%{opacity:0;transform:translate(690px,55px) rotate(35deg)}
+    @keyframes boil { from{transform:scale(1,1)} to{transform:scale(1.06,.94)} }
+    @keyframes toolPop {
+      0%,53%{opacity:0;transform:translate(0,0) scale(.2) rotate(0)}
+      55%{opacity:1;transform:translate(calc(var(--tx)*.8),calc(var(--ty)*.8)) scale(1.1) rotate(calc(var(--r)*.6))}
+      58%{opacity:1;transform:translate(var(--tx),var(--ty)) scale(1) rotate(var(--r))}
+      61%,100%{opacity:0;transform:translate(0,0) scale(.3) rotate(calc(var(--r)*-1))}
     }
+    @keyframes bitFly {
+      0%,50%{opacity:0;transform:translate(0,0) scale(.4)}
+      52%{opacity:1}
+      60%,100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1)}
+    }
+    @keyframes figurePop {
+      0%,70%{opacity:0;transform:scale(.55)}
+      72%{opacity:1;transform:scale(.6)}
+      78%{opacity:1;transform:translateY(-14px) scale(.94,1.1)}
+      81%{opacity:1;transform:translateY(0) scale(1.1,.9)}
+      84%{opacity:1;transform:translateY(-3px) scale(.97,1.03)}
+      87%,100%{opacity:1;transform:translateY(0) scale(1)}
+    }
+    @keyframes idle { 0%,100%{transform:scale(1,1)} 50%{transform:scale(1.008,1.018)} }
     @keyframes magicBurst {
-      0%,39%{opacity:0;transform:scale(.3) rotate(-10deg)}
-      44%{opacity:.95;transform:scale(.75)}
-      50%{opacity:.8;transform:scale(1.15) rotate(12deg)}
-      57%,100%{opacity:0;transform:scale(1.55) rotate(22deg)}
+      0%,76%{opacity:0;transform:scale(.4) rotate(-10deg)}
+      80%{opacity:.95;transform:scale(.9)}
+      86%{opacity:.75;transform:scale(1.15) rotate(12deg)}
+      93%,100%{opacity:0;transform:scale(1.45) rotate(22deg)}
     }
     @keyframes dustPuff {
-      0%,12%{opacity:0;transform:scale(.3)}
-      18%{opacity:.85;transform:scale(.75)}
-      25%,100%{opacity:0;transform:scale(1.4)}
-    }
-    @keyframes trailDraw {
-      0%,54%{opacity:0;stroke-dashoffset:1}
-      56%{opacity:.7;stroke-dashoffset:1}
-      82%{opacity:.7;stroke-dashoffset:0}
-      90%,100%{opacity:0;stroke-dashoffset:0}
+      0%,11%{opacity:0;transform:scale(.3)}
+      15%{opacity:.85;transform:scale(.75)}
+      21%,100%{opacity:0;transform:scale(1.4)}
     }
     @keyframes brandReveal {
       0%,84%{opacity:0;transform:translateY(12px)}
-      96%,100%{opacity:1;transform:translateY(0)}
+      93%,100%{opacity:1;transform:translateY(0)}
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .logo-demo.playing .cloud, .logo-demo.playing .plume, .logo-demo.playing .puff > *, .logo-demo.playing .pencil-wiggle, .logo-demo.playing .idle { animation:none; }
     }
     @media(max-width:520px){.stage{height:360px}.screen{padding:24px 12px}}
 
@@ -294,7 +312,7 @@
     <p class="eyebrow">Texture3D Studio · Animation Lab</p>
     <section class="stage" id="stage" aria-label="Prévisualisation de l’animation">
 
-      <div class="logo-demo" id="logoDemo" aria-label="Un cube surgit du sol, un crayon le transforme en personnage en A-pose et le peint">
+      <div class="logo-demo" id="logoDemo" aria-label="Un cube surgit du sol, un crayon le gribouille de partout, un nuage de travaux l’enveloppe et un personnage en couleur apparaît">
         <svg class="intro-art" viewBox="0 0 720 460" role="img" aria-label="Animation illustrée de Texture3D Studio">
           <defs>
             <radialGradient id="floor"><stop stop-color="#a879a0" stop-opacity=".22"/><stop offset="1" stop-color="#a879a0" stop-opacity="0"/></radialGradient>
@@ -308,10 +326,7 @@
             <linearGradient id="pants" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#9a91b8"/><stop offset=".5" stop-color="#655c86"/><stop offset="1" stop-color="#393750"/></linearGradient>
             <linearGradient id="boot" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#78576c"/><stop offset="1" stop-color="#342b48"/></linearGradient>
             <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe5a6"/><stop offset="1" stop-color="#d58c65"/></linearGradient>
-            <linearGradient id="clay" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#f1e5dd"/><stop offset=".48" stop-color="#c1b3bd"/><stop offset="1" stop-color="#81738e"/></linearGradient>
-            <linearGradient id="clayDark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#bdb0ba"/><stop offset="1" stop-color="#675c76"/></linearGradient>
             <clipPath id="groundClip"><rect x="0" y="0" width="720" height="350"/></clipPath>
-            <clipPath id="paintClip"><rect class="paint-window" x="220" y="72" width="280" height="278"/></clipPath>
             <g id="character" class="ink" stroke="var(--outline,#403149)" stroke-width="1.7">
               <!-- Back hair and scarf tail, then the two legs and arms in A-pose. -->
               <path d="M337 132Q321 158 328 192L346 203L387 191Q399 168 386 132Z" fill="var(--hair)"/>
@@ -361,10 +376,28 @@
               </g>
               <g fill="var(--gold)" stroke="none"><path d="M345 214l3 4-3 4-3-4Z"/><path d="M375 214l3 4-3 4-3-4Z"/></g>
             </g>
+            <g id="pencil" class="ink" stroke="#55394e" stroke-width="1.5">
+              <g transform="rotate(35)">
+                <path d="M0 0L-10 -19L-10 -81Q0 -87 10 -81L10 -19Z" fill="#f4c778"/>
+                <path d="M-10 -19L0 0L10 -19L0 -16Z" fill="#f7dfb8"/>
+                <path d="M0 0L-3 -6L3 -6Z" fill="#47354e"/>
+                <path d="M-5 -23V-78" stroke="#fff0b0" stroke-width="3"/>
+                <path d="M6 -22V-79" stroke="#c58b5b" stroke-width="3"/>
+                <path d="M-10 -78V-90Q0 -97 10 -90V-78Z" fill="#d88ba7"/>
+                <path d="M-10 -79H10V-72H-10Z" fill="#c6b8c8"/>
+                <path d="M-4 -51v3M4 -51v3M-3 -44Q0 -41 3 -44" fill="none" stroke="#593b4e" stroke-width="1.7"/>
+                <path d="M-12 -48Q-20 -46 -19 -39M12 -48Q20 -48 20 -55" fill="none" stroke="#f5d8d0" stroke-width="2.2"/>
+                <circle cx="-19" cy="-39" r="2.5" fill="#f5d8d0" stroke="none"/><circle cx="20" cy="-55" r="2.5" fill="#f5d8d0" stroke="none"/>
+              </g>
+            </g>
           </defs>
           <ellipse cx="360" cy="348" rx="272" ry="71" fill="url(#floor)"/>
           <ellipse cx="360" cy="350" rx="129" ry="18" fill="url(#shadow)" class="ground-shadow"/>
           <path d="M221 350H499" stroke="#e5b8d6" stroke-opacity=".13" stroke-width="1" stroke-linecap="round"/>
+          <!-- Le personnage final attend derrière le nuage. -->
+          <g class="figure-motion"><g class="idle">
+            <use href="#character" style="--hair:url(#hair);--coat:url(#coat);--pants:url(#pants);--boot:url(#boot);--skin:url(#skin);--trim:#e2c9a1;--shade:#24475e;--shirt:#f2d9b4;--gold:url(#gold);--scarf:#c97085;--highlight:#fce3bf;--hairLight:#ffd79c;--eyeWhite:#fff1df;--iris:#477f82;--faceLine:#9d5f69;--blush:#d97c82;--outline:#44354d"/>
+          </g></g>
           <g clip-path="url(#groundClip)">
             <g class="cube-motion ink" stroke="#68566d" stroke-width="2">
               <path d="M360 188L445 228L360 270L275 228Z" fill="url(#cubeTop)"/>
@@ -372,39 +405,29 @@
               <path d="M360 270L445 228V308L360 350Z" fill="url(#cubeRight)"/>
               <path d="M279 228L360 190L440 228M279 232L360 272L440 232" fill="none" stroke="#fff0e6" stroke-opacity=".65" stroke-width="1.6"/>
               <path d="M284 244V303L351 336" fill="none" stroke="#f0d8e3" stroke-opacity=".24" stroke-width="2"/>
-              <path class="sketch" pathLength="1" d="M395 257Q366 241 331 242Q310 250 315 290Q336 316 385 310Q415 300 432 269" fill="none" stroke="#ffe2a2" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- Gribouillis sur les trois faces : le crayon suit exactement ce tracé. -->
+              <path class="sketch" pathLength="1" d="M295.6 228.4 L359.8 197.8 L370.7 203.8 L305.9 234.8 L315.7 239.7 L377.3 209.3 L392.5 215.1 L325.5 244.1 L341.3 249.5 L401.6 218.8 L412.4 222.2 L349.9 252.6 L355.7 259.0 L422.4 230.4 L284.4 244.2 L349.7 275.6 L349.2 285.6 L283.8 253.9 L287.0 267.9 L348.0 298.7 L348.7 309.4 L287.6 280.8 L284.7 290.4 L349.1 323.4 L350.1 333.1 L288.5 301.9 L370.6 277.0 L432.2 245.5 L431.6 258.0 L372.4 286.9 L373.0 297.1 L434.9 267.6 L434.4 278.8 L372.8 311.2 L370.9 322.5 L431.7 292.7 L434.7 303.9 L372.7 331.7 L362 342 L282 304 L281 232 L360 194 L439 232 L439 304 L362 342" fill="none" stroke="#ffe2a2" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
             </g>
           </g>
           <g class="dust" fill="#d8a6ca">
             <circle cx="269" cy="342" r="5"/><circle cx="253" cy="332" r="3"/><circle cx="452" cy="340" r="5"/><circle cx="470" cy="331" r="3"/><circle cx="238" cy="344" r="2"/>
           </g>
-          <g class="figure-motion">
-            <use href="#character" style="--hair:url(#clayDark);--coat:url(#clay);--pants:url(#clayDark);--boot:url(#clayDark);--skin:url(#clay);--trim:#b3a5b8;--shade:#71657e;--shirt:#d5c9d0;--gold:#d8cbd2;--scarf:url(#clayDark);--highlight:#f2e8e5;--hairLight:#d3c5ce;--eyeWhite:#e9dfe2;--iris:#75687f;--faceLine:#8d7d91;--blush:#bba8b9;--outline:#77677d"/>
-            <g clip-path="url(#paintClip)">
-              <use href="#character" style="--hair:url(#hair);--coat:url(#coat);--pants:url(#pants);--boot:url(#boot);--skin:url(#skin);--trim:#e2c9a1;--shade:#24475e;--shirt:#f2d9b4;--gold:url(#gold);--scarf:#c97085;--highlight:#fce3bf;--hairLight:#ffd79c;--eyeWhite:#fff1df;--iris:#477f82;--faceLine:#9d5f69;--blush:#d97c82;--outline:#44354d"/>
-            </g>
+          <!-- Nuage de travaux : bouffées, outils et étincelles qui jaillissent. -->
+          <g class="cloud">
+            <g class="plumes"><circle class="plume" cx="250" cy="230" r="18" fill="#c9b8cc" style="--d:-0.00s;--sx:-28px"/><circle class="plume" cx="271" cy="259" r="31" fill="#ad9bb3" style="--d:-0.14s;--sx:-14px"/><circle class="plume" cx="292" cy="288" r="30" fill="#ddd0dc" style="--d:-0.27s;--sx:0px"/><circle class="plume" cx="295" cy="257" r="29" fill="#c9b8cc" style="--d:-0.41s;--sx:14px"/><circle class="plume" cx="316" cy="286" r="28" fill="#ad9bb3" style="--d:-0.55s;--sx:28px"/><circle class="plume" cx="337" cy="255" r="27" fill="#ddd0dc" style="--d:-0.69s;--sx:-28px"/><circle class="plume" cx="340" cy="284" r="26" fill="#c9b8cc" style="--d:-0.82s;--sx:-14px"/><circle class="plume" cx="361" cy="253" r="25" fill="#ad9bb3" style="--d:-0.96s;--sx:0px"/><circle class="plume" cx="382" cy="282" r="24" fill="#ddd0dc" style="--d:-1.10s;--sx:14px"/><circle class="plume" cx="385" cy="251" r="23" fill="#c9b8cc" style="--d:-0.13s;--sx:28px"/><circle class="plume" cx="406" cy="280" r="22" fill="#ad9bb3" style="--d:-0.27s;--sx:-28px"/><circle class="plume" cx="427" cy="249" r="21" fill="#ddd0dc" style="--d:-0.41s;--sx:-14px"/><circle class="plume" cx="430" cy="278" r="20" fill="#c9b8cc" style="--d:-0.54s;--sx:0px"/><circle class="plume" cx="451" cy="247" r="19" fill="#ad9bb3" style="--d:-0.68s;--sx:14px"/><circle class="plume" cx="472" cy="276" r="18" fill="#ddd0dc" style="--d:-0.82s;--sx:28px"/><circle class="plume" cx="475" cy="245" r="31" fill="#c9b8cc" style="--d:-0.96s;--sx:-28px"/></g>
+            <path d="M200 170l-24-10M196 200l-30 0M520 170l24-10M524 200l30 0M215 350l-22 10M505 350l22 10" stroke="#f3d7e6" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+            <circle class="bit" cx="446" cy="278" r="3" fill="#eadde8" style="--tx:143px;--ty:27px;--d:0.00s"/><circle class="bit" cx="426" cy="299" r="5" fill="#ffd66b" style="--tx:132px;--ty:74px;--d:0.12s"/><circle class="bit" cx="393" cy="313" r="7" fill="#c9b7cc" style="--tx:77px;--ty:117px;--d:0.24s"/><circle class="bit" cx="353" cy="317" r="3" fill="#eadde8" style="--tx:-11px;--ty:90px;--d:0.36s"/><circle class="bit" cx="315" cy="310" r="5" fill="#ffd66b" style="--tx:-90px;--ty:93px;--d:0.48s"/><circle class="bit" cx="286" cy="293" r="7" fill="#c9b7cc" style="--tx:-174px;--ty:71px;--d:0.00s"/><circle class="bit" cx="271" cy="270" r="3" fill="#eadde8" style="--tx:-148px;--ty:13px;--d:0.12s"/><circle class="bit" cx="274" cy="246" r="5" fill="#ffd66b" style="--tx:-172px;--ty:-32px;--d:0.24s"/><circle class="bit" cx="294" cy="225" r="7" fill="#c9b7cc" style="--tx:-154px;--ty:-86px;--d:0.36s"/><circle class="bit" cx="327" cy="211" r="3" fill="#eadde8" style="--tx:-55px;--ty:-84px;--d:0.48s"/><circle class="bit" cx="367" cy="207" r="5" fill="#ffd66b" style="--tx:14px;--ty:-108px;--d:0.00s"/><circle class="bit" cx="405" cy="214" r="7" fill="#c9b7cc" style="--tx:105px;--ty:-109px;--d:0.12s"/><circle class="bit" cx="434" cy="231" r="3" fill="#eadde8" style="--tx:124px;--ty:-51px;--d:0.24s"/><circle class="bit" cx="449" cy="254" r="5" fill="#ffd66b" style="--tx:178px;--ty:-16px;--d:0.36s"/>
+            <g transform="translate(250 215)"><g class="tool" style="--tx:-70px;--ty:-55px;--r:-35deg;--d:.00s"><g class="ink" stroke="#4a3550" stroke-width="2"><rect x="-4" y="-6" width="8" height="46" rx="3" fill="#d39a64"/><path d="M-20 -16H18Q24 -16 24 -10V-2H-20Z" fill="#a9a6b8"/><path d="M-20 -16L-28 -9L-20 -2Z" fill="#8f8aa3"/></g></g></g><g transform="translate(470 215)"><g class="tool" style="--tx:75px;--ty:-50px;--r:40deg;--d:.35s"><g class="ink" stroke="#4a3550" stroke-width="2"><path d="M-5 -24A13 13 0 1 1 5 -24L4 -16H-4ZM-4 -16V32Q0 38 4 32V-16" fill="#c3c0d2"/><path d="M-4 -28L0 -36L4 -28" fill="#eadde8" stroke="none"/></g></g></g><g transform="translate(300 160)"><g class="tool" style="--tx:-30px;--ty:-55px;--r:90deg;--d:.15s"><path d="M0 -18L5 -6L18 -5L8 3L11 16L0 9L-11 16L-8 3L-18 -5L-5 -6Z" fill="#ffd66b" stroke="#6b4a3a" stroke-width="2" stroke-linejoin="round"/></g></g><g transform="translate(430 160)"><g class="tool" style="--tx:35px;--ty:-55px;--r:-80deg;--d:.55s"><path d="M0 -18L5 -6L18 -5L8 3L11 16L0 9L-11 16L-8 3L-18 -5L-5 -6Z" fill="#ffd66b" stroke="#6b4a3a" stroke-width="2" stroke-linejoin="round"/></g></g><g transform="translate(472 320)"><g class="tool" style="--tx:70px;--ty:30px;--r:60deg;--d:.25s"><g stroke="#4a3550" stroke-width="2"><path d="M-9 -5H9V5H-9Z" fill="#a9a6b8"/><path d="M-3 5V24H3V5" fill="#c3c0d2"/><path d="M-3 10H3M-3 15H3M-3 20H3" stroke-width="1.4"/></g></g></g><g transform="translate(248 320)"><g class="tool" style="--tx:-75px;--ty:30px;--r:-50deg;--d:.65s"><g class="ink" stroke="#4a3550" stroke-width="2"><path d="M-6 -30H6V-8H-6Z" fill="#d88ba7"/><path d="M-10 -8H10V34L-10 30Z" fill="#c9c6d6"/><path d="M10 -2l5 4-5 4 5 4-5 4 5 4-5 4" fill="none"/></g></g></g><g transform="translate(360 150)"><g class="tool" style="--tx:0px;--ty:-70px;--r:-20deg;--d:.85s"><use href="#pencil"/></g></g><g transform="translate(360 250)"><g class="tool" style="--tx:160px;--ty:-120px;--r:25deg;--d:.45s"><path d="M0 -26L7 -10L24 -16L14 -2L28 8L10 9L12 26L0 14L-12 26L-10 9L-28 8L-14 -2L-24 -16L-7 -10Z" fill="#ffb27a" stroke="#6b3a3a" stroke-width="2" stroke-linejoin="round"/></g></g><g transform="translate(360 250)"><g class="tool" style="--tx:-185px;--ty:-70px;--r:140deg;--d:1.0s"><path d="M0 -18L5 -6L18 -5L8 3L11 16L0 9L-11 16L-8 3L-18 -5L-5 -6Z" fill="#ffd66b" stroke="#6b4a3a" stroke-width="2" stroke-linejoin="round"/></g></g><g transform="translate(360 250)"><g class="tool" style="--tx:-170px;--ty:75px;--r:-25deg;--d:1.15s"><path d="M0 -26L7 -10L24 -16L14 -2L28 8L10 9L12 26L0 14L-12 26L-10 9L-28 8L-14 -2L-24 -16L-7 -10Z" fill="#ffb27a" stroke="#6b3a3a" stroke-width="2" stroke-linejoin="round"/></g></g>
+            <g class="puff" style="--d:0.000s;--dx:0px;--dy:-30px"><g style="--b:-0.00s"><circle cx="360" cy="250" r="64" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="342" cy="230" r="27" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M325 279Q360 301 395 279" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.072s;--dx:-70px;--dy:-10px"><g style="--b:-0.07s"><circle cx="298" cy="268" r="46" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="285" cy="253" r="19" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M273 289Q298 305 323 289" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.144s;--dx:70px;--dy:-10px"><g style="--b:-0.14s"><circle cx="422" cy="270" r="48" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="409" cy="255" r="20" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M396 292Q422 308 448 292" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.018s;--dx:-40px;--dy:-60px"><g style="--b:-0.21s"><circle cx="330" cy="210" r="40" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="319" cy="197" r="17" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M308 228Q330 242 352 228" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.090s;--dx:40px;--dy:-60px"><g style="--b:-0.28s"><circle cx="396" cy="206" r="42" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="384" cy="193" r="18" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M373 225Q396 240 419 225" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.162s;--dx:-90px;--dy:20px"><g style="--b:-0.35s"><circle cx="268" cy="310" r="34" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="258" cy="299" r="14" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M249 325Q268 337 287 325" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.036s;--dx:90px;--dy:20px"><g style="--b:-0.42s"><circle cx="452" cy="310" r="36" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="442" cy="298" r="15" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M432 326Q452 339 472 326" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.108s;--dx:0px;--dy:30px"><g style="--b:-0.49s"><circle cx="360" cy="316" r="52" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="345" cy="299" r="22" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M331 339Q360 358 389 339" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.180s;--dx:-55px;--dy:35px"><g style="--b:-0.56s"><circle cx="306" cy="322" r="38" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="295" cy="310" r="16" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M285 339Q306 352 327 339" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.054s;--dx:55px;--dy:35px"><g style="--b:-0.63s"><circle cx="414" cy="322" r="40" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="403" cy="309" r="17" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M392 340Q414 354 436 340" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.126s;--dx:-100px;--dy:-20px"><g style="--b:-0.70s"><circle cx="246" cy="266" r="28" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="238" cy="257" r="12" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M231 279Q246 288 261 279" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.000s;--dx:100px;--dy:-20px"><g style="--b:-0.77s"><circle cx="474" cy="262" r="30" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="466" cy="252" r="13" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M458 276Q474 286 490 276" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g><g class="puff" style="--d:0.072s;--dx:0px;--dy:-80px"><g style="--b:-0.84s"><circle cx="358" cy="178" r="34" fill="#eadde8" stroke="#5f4b66" stroke-width="3"/><circle cx="348" cy="167" r="14" fill="#fbf4f8" stroke="none" opacity=".75"/><path d="M339 193Q358 205 377 193" fill="none" stroke="#b9a3bd" stroke-width="4" stroke-linecap="round" opacity=".7"/></g></g>
+            <g class="puff" style="--d:.06s;--dx:0px;--dy:0px"><g><ellipse cx="360" cy="262" rx="118" ry="78" fill="#eadde8"/></g></g>
           </g>
           <g class="magic" fill="none" stroke="#f9d6a7" stroke-linecap="round">
-            <ellipse cx="360" cy="252" rx="104" ry="57" transform="rotate(-23 360 252)" stroke-width="1.8" stroke-dasharray="6 12"/>
-            <path d="M250 203l6-10 6 10-6 10Z M457 216l5-9 5 9-5 9Z M414 132l4-7 4 7-4 7Z" fill="#ffe4b7" stroke="none"/>
-            <path d="M288 174v14m-7-7h14M463 290v14m-7-7h14M255 276v10m-5-5h10" stroke-width="2"/>
+            <ellipse cx="360" cy="240" rx="112" ry="60" transform="rotate(-23 360 240)" stroke-width="1.8" stroke-dasharray="6 12"/>
+            <path d="M250 191l6-10 6 10-6 10Z M457 204l5-9 5 9-5 9Z M414 120l4-7 4 7-4 7Z" fill="#ffe4b7" stroke="none"/>
+            <path d="M288 162v14m-7-7h14M463 278v14m-7-7h14M255 264v10m-5-5h10" stroke-width="2"/>
           </g>
-          <path class="paint-trail" pathLength="1" d="M400 334Q300 340 323 316T409 285T305 258T417 229T328 197T390 159T367 130" fill="none" stroke="#f6cf9b" stroke-width="2" stroke-linecap="round"/>
-          <!-- Pencil tip is the origin, so the tip follows the drawn path. -->
-          <g class="pencil-motion ink" stroke="#55394e" stroke-width="1.5">
-            <g transform="rotate(35)">
-              <path d="M0 0L-10 -19L-10 -81Q0 -87 10 -81L10 -19Z" fill="#f4c778"/>
-              <path d="M-10 -19L0 0L10 -19L0 -16Z" fill="#f7dfb8"/>
-              <path d="M0 0L-3 -6L3 -6Z" fill="#47354e"/>
-              <path d="M-5 -23V-78" stroke="#fff0b0" stroke-width="3"/>
-              <path d="M6 -22V-79" stroke="#c58b5b" stroke-width="3"/>
-              <path d="M-10 -78V-90Q0 -97 10 -90V-78Z" fill="#d88ba7"/>
-              <path d="M-10 -79H10V-72H-10Z" fill="#c6b8c8"/>
-              <path d="M-4 -51v3M4 -51v3M-3 -44Q0 -41 3 -44" fill="none" stroke="#593b4e" stroke-width="1.7"/>
-              <path d="M-12 -48Q-20 -46 -19 -39M12 -48Q20 -48 20 -55" fill="none" stroke="#f5d8d0" stroke-width="2.2"/>
-              <circle cx="-19" cy="-39" r="2.5" fill="#f5d8d0" stroke="none"/><circle cx="20" cy="-55" r="2.5" fill="#f5d8d0" stroke="none"/>
-            </g>
-          </g>
+          <!-- La pointe du crayon est l’origine : elle suit le tracé du gribouillis. -->
+          <g class="pencil-motion"><g class="pencil-wiggle"><use href="#pencil"/></g></g>
           <g class="brand" text-anchor="middle">
             <text x="360" y="405" font-family="Inter, Segoe UI, sans-serif" font-size="30" font-weight="650" letter-spacing="-1.4" fill="#fff2f3">Texture3D</text>
             <text x="360" y="426" font-family="Inter, Segoe UI, sans-serif" font-size="10" font-weight="600" letter-spacing="4.5" fill="#e3b4cd">STUDIO</text>
